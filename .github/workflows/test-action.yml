@@ -1,0 +1,21 @@
+on: workflow_dispatch
+
+jobs:
+  hello_world_job:
+    runs-on: ubuntu-latest
+    name: Appcircle-Testing-Distribution-Action
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test Local Action
+        id: testing-distribution
+        uses: ./
+        with:
+          accessToken: ${{ secrets.AC_ACCESS_TOKEN }}
+          profileID: ${{ secrets.AC_PROFILE_ID }}
+          appPath: ./Appcircle.ipa
+          message: Github Action Message
+
+      - name: Get the output time
+        run: echo "The time was ${{ steps.hello.outputs.time }}"
