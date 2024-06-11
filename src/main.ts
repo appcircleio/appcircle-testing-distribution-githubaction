@@ -21,10 +21,11 @@ export async function run(): Promise<void> {
     execSync(`appcircle login --pat=${accessToken}`, { stdio: 'inherit' })
     const output = execSync(
       `appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message} -o json"`,
-      { stdio: 'inherit' }
+      { encoding: 'utf-8' }
     )
 
-    const taskId = JSON.parse(output.toString())?.taskId
+    console.log('output:', output)
+    const taskId = JSON.parse(output)?.taskId
     console.log('taskId:', taskId)
     await checkTaskStatus(taskId)
   } catch (error) {
