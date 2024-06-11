@@ -16,6 +16,3 @@ jobs:
           profileID: ${{ secrets.AC_PROFILE_ID }}
           appPath: ./Appcircle.ipa
           message: Github Action Message
-
-      - name: Get the output time
-        run: echo "The time was ${{ steps.hello.outputs.time }}"
