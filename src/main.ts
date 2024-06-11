@@ -24,6 +24,7 @@ export async function run(): Promise<void> {
       { encoding: 'utf-8' }
     )
 
+    console.log('output:', output)
     const taskIdMatch = output.match(/TaskId:\s*([a-f0-9-]+)/i)
 
     if (taskIdMatch && taskIdMatch[1]) {

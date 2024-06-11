@@ -24970,6 +24970,7 @@ async function run() {
         (0, child_process_1.execSync)(`appcircle --version`, { stdio: 'inherit' });
         (0, child_process_1.execSync)(`appcircle login --pat=${accessToken}`, { stdio: 'inherit' });
         const output = (0, child_process_1.execSync)(`appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message} -o json"`, { encoding: 'utf-8' });
+        console.log('output:', output);
         const taskIdMatch = output.match(/TaskId:\s*([a-f0-9-]+)/i);
         if (taskIdMatch && taskIdMatch[1]) {
             const taskId = taskIdMatch[1];
