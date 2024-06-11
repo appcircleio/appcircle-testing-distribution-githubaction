@@ -24969,8 +24969,9 @@ async function run() {
         console.log('message:', message);
         (0, child_process_1.execSync)(`appcircle --version`, { stdio: 'inherit' });
         (0, child_process_1.execSync)(`appcircle login --pat=${accessToken}`, { stdio: 'inherit' });
-        const output = (0, child_process_1.execSync)(`appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message} -o json"`, { stdio: 'inherit' });
-        const taskId = JSON.parse(output.toString())?.taskId;
+        const output = (0, child_process_1.execSync)(`appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message} -o json"`, { encoding: 'utf-8' });
+        console.log('output:', output);
+        const taskId = JSON.parse(output)?.taskId;
         console.log('taskId:', taskId);
         await checkTaskStatus(taskId);
     }
