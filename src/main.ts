@@ -24,10 +24,14 @@ export async function run(): Promise<void> {
       { encoding: 'utf-8' }
     )
 
-    console.log('output:', output)
-    const taskId = JSON.parse(output)?.taskId
-    console.log('taskId:', taskId)
-    await checkTaskStatus(taskId)
+    const taskIdMatch = output.match(/TaskId:\s*([a-f0-9-]+)/i)
+
+    if (taskIdMatch && taskIdMatch[1]) {
+      const taskId = taskIdMatch[1]
+      await checkTaskStatus(taskId)
+    } else {
+      console.log('TaskId not found')
+    }
   } catch (error) {
     // Fail the workflow run if an error occurs
     if (error instanceof Error) core.setFailed(error.message)
