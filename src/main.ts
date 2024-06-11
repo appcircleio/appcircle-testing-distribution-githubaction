@@ -12,12 +12,7 @@ export async function run(): Promise<void> {
     const profileID = core.getInput('profileID')
     const appPath = core.getInput('appPath')
     const message = core.getInput('message')
-    console.log('AC_TOKEN:', accessToken)
-    console.log('profileID:', profileID)
-    console.log('appPath:', appPath)
-    console.log('message:', message)
 
-    execSync(`appcircle --version`, { stdio: 'inherit' })
     execSync(`appcircle login --pat=${accessToken}`, { stdio: 'inherit' })
     execSync(
       `appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}"`,

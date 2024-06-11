@@ -24963,11 +24963,6 @@ async function run() {
         const profileID = core.getInput('profileID');
         const appPath = core.getInput('appPath');
         const message = core.getInput('message');
-        console.log('AC_TOKEN:', accessToken);
-        console.log('profileID:', profileID);
-        console.log('appPath:', appPath);
-        console.log('message:', message);
-        (0, child_process_1.execSync)(`appcircle --version`, { stdio: 'inherit' });
         (0, child_process_1.execSync)(`appcircle login --pat=${accessToken}`, { stdio: 'inherit' });
         (0, child_process_1.execSync)(`appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}"`, { encoding: 'utf-8' });
     }
