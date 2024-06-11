@@ -20,7 +20,7 @@ export async function run(): Promise<void> {
     execSync(`appcircle --version`, { stdio: 'inherit' })
     execSync(`appcircle login --pat=${accessToken}`, { stdio: 'inherit' })
     const output = execSync(
-      `appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message} -o json"`,
+      `appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}"`,
       { encoding: 'utf-8' }
     )
 
