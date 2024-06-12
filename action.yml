@@ -7,6 +7,7 @@ description:
 branding:
   icon: 'icon.png'
   color: 'blue'
+  label: 'Appcircle'
 
 inputs:
   accessToken:
