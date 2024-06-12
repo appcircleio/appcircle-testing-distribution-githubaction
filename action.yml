@@ -4,11 +4,6 @@ description:
   "Efficiently distribute application builds to users or testing groups using
   Appcircle's robust platform."
 
-branding:
-  icon: 'icon.png'
-  color: 'blue'
-  label: 'Appcircle'
-
 inputs:
   accessToken:
     description:
