@@ -24978,13 +24978,14 @@ async function run() {
         const message = core.getInput('message');
         await runCLICommand(`appcircle login --pat=${accessToken}`);
         const response = await runCLICommand(`appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}" -o json`);
-        console.log('upload response:', response);
         const taskId = JSON.parse(response)?.taskId;
-        console.log('task id:', taskId);
         if (!taskId) {
             core.setFailed('Task ID is not found in the upload response');
         }
-        await checkTaskStatus(JSON.parse(response).taskId);
+        else {
+            await checkTaskStatus(JSON.parse(response).taskId);
+            console.log(`${appPath} uploaded to Appcircle successfully`);
+        }
     }
     catch (error) {
         // Fail the workflow run if an error occurs
@@ -25006,11 +25007,11 @@ async function checkTaskStatus(taskId, currentAttempt = 0) {
     });
     const res = await response.json();
     console.log('task Status Response:', res);
-    if (res?.stateValue == 1 && currentAttempt < 100) {
+    if ((res?.stateValue == 0 || res?.stateValue == 1) && currentAttempt < 100) {
         return checkTaskStatus(taskId, currentAttempt + 1);
     }
     else if (res?.stateValue === 2) {
-        throw new Error(`Task Failed: ${res.stateName}`);
+        throw new Error(`Build Upload Task Failed: ${res.stateName}`);
     }
 }
 
