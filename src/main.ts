@@ -30,8 +30,10 @@ export async function run(): Promise<void> {
     const response = await runCLICommand(
       `appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}" -o json`
     )
+    console.log('upload response:', response)
     const taskId = JSON.parse(response)?.taskId
-    if (!!taskId) {
+    console.log('task id:', taskId)
+    if (!taskId) {
       core.setFailed('Task ID is not found in the upload response')
     }
     await checkTaskStatus(JSON.parse(response).taskId)
