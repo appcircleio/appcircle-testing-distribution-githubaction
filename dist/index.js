@@ -24952,19 +24952,37 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const child_process_1 = __nccwpck_require__(2081);
+function runCLICommand(command) {
+    return new Promise((resolve, reject) => {
+        (0, child_process_1.exec)(command, (error, stdout, stderr) => {
+            if (error) {
+                reject(error);
+                console.error(error);
+            }
+            else {
+                resolve(stdout);
+            }
+        });
+    });
+}
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
  */
 async function run() {
     try {
-        (0, child_process_1.execSync)(`npm install -g @appcircle/cli`, { stdio: 'inherit' });
+        await runCLICommand(`npm install -g @appcircle/cli`);
         const accessToken = core.getInput('accessToken');
         const profileID = core.getInput('profileID');
         const appPath = core.getInput('appPath');
         const message = core.getInput('message');
-        (0, child_process_1.execSync)(`appcircle login --pat=${accessToken}`, { stdio: 'inherit' });
-        (0, child_process_1.execSync)(`appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}"`, { encoding: 'utf-8' });
+        await runCLICommand(`appcircle login --pat=${accessToken}`);
+        const response = await runCLICommand(`appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}" -o json`);
+        const taskId = JSON.parse(response)?.taskId;
+        if (!!taskId) {
+            core.setFailed('Task ID is not found in the upload response');
+        }
+        await checkTaskStatus(JSON.parse(response).taskId);
     }
     catch (error) {
         // Fail the workflow run if an error occurs
@@ -24973,6 +24991,22 @@ async function run() {
     }
 }
 exports.run = run;
+async function checkTaskStatus(taskId, currentAttempt = 0) {
+    const tokenCommand = `appcircle config get AC_ACCESS_TOKEN -o json`;
+    const output = (0, child_process_1.execSync)(tokenCommand, { encoding: 'utf-8' });
+    const apiAccessToken = JSON.parse(output)?.AC_ACCESS_TOKEN;
+    const response = await fetch(`https://api.appcircle.io/task/v1/tasks/${taskId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiAccessToken}`
+        }
+    });
+    const res = await response.json();
+    if (res?.stateValue == 1 && currentAttempt < 100) {
+        return checkTaskStatus(taskId, currentAttempt + 1);
+    }
+}
 
 
 /***/ }),
