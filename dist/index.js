@@ -24976,7 +24976,8 @@ async function run() {
         const profileID = core.getInput('profileID');
         const appPath = core.getInput('appPath');
         const message = core.getInput('message');
-        await runCLICommand(`appcircle login --pat=${accessToken}`);
+        const loginResponse = await runCLICommand(`appcircle login --pat=${accessToken}`);
+        console.log(loginResponse);
         const response = await runCLICommand(`appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}" -o json`);
         const taskId = JSON.parse(response)?.taskId;
         if (!taskId) {
