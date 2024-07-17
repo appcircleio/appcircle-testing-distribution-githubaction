@@ -25005,8 +25005,12 @@ async function checkTaskStatus(taskId, currentAttempt = 0) {
         }
     });
     const res = await response.json();
+    console.log('task Status Response:', res);
     if (res?.stateValue == 1 && currentAttempt < 100) {
         return checkTaskStatus(taskId, currentAttempt + 1);
+    }
+    else if (res?.stateValue === 2) {
+        throw new Error(`Task Failed: ${res.stateName}`);
     }
 }
 
