@@ -1,6 +1,6 @@
 {
-  "name": "typescript-action",
-  "description": "GitHub Actions TypeScript template",
+  "name": "appcircle-testing-distribution",
+  "description": "Efficiently distribute application builds to users or testing groups using Appcircle's robust platform.",
   "version": "0.0.1",
   "author": "",
   "private": true,
