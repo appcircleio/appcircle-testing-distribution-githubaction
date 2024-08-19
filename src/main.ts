@@ -36,19 +36,16 @@ export async function run(): Promise<void> {
     const loginResponse = await getToken(accessToken)
     UploadServiceHeaders.token = loginResponse.access_token
 
-    console.log(loginResponse)
+    const profileIdFromName = await getProfileId(profileName, true)
+    console.log('profileIdFromName:', profileIdFromName)
 
     const uploadResponse = await uploadArtifact({
       message,
       app: appPath,
-      distProfileId: profileID
+      distProfileId: profileIdFromName
     })
 
     console.log('uploadResponse:', uploadResponse)
-
-    const profileIdFromName = await getProfileId(profileName, true)
-    console.log('profileIdFromName:', profileIdFromName)
-
     if (!uploadResponse.taskId) {
       core.setFailed('Task ID is not found in the upload response')
     } else {

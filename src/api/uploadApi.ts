@@ -72,7 +72,7 @@ export async function getDistributionProfiles() {
 export async function getProfileId(
   profileName: string,
   createProfileIfNotExists: boolean
-): Promise<string | null> {
+): Promise<string> {
   const profiles = await getDistributionProfiles()
   console.log('profiles:', profiles)
   let profileId: string | null = null
@@ -96,6 +96,10 @@ export async function getProfileId(
       throw new Error('Error: The new profile could not be created.')
     }
     profileId = newProfile.id
+  }
+
+  if (!profileId) {
+    throw new Error('Error: The profile ID is not found.')
   }
 
   return profileId

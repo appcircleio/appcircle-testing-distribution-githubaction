@@ -28526,6 +28526,9 @@ async function getProfileId(profileName, createProfileIfNotExists) {
         }
         profileId = newProfile.id;
     }
+    if (!profileId) {
+        throw new Error('Error: The profile ID is not found.');
+    }
     return profileId;
 }
 exports.getProfileId = getProfileId;
@@ -28593,15 +28596,14 @@ async function run() {
         const message = core.getInput('message');
         const loginResponse = await (0, authApi_1.getToken)(accessToken);
         uploadApi_1.UploadServiceHeaders.token = loginResponse.access_token;
-        console.log(loginResponse);
+        const profileIdFromName = await (0, uploadApi_1.getProfileId)(profileName, true);
+        console.log('profileIdFromName:', profileIdFromName);
         const uploadResponse = await (0, uploadApi_1.uploadArtifact)({
             message,
             app: appPath,
-            distProfileId: profileID
+            distProfileId: profileIdFromName
         });
         console.log('uploadResponse:', uploadResponse);
-        const profileIdFromName = await (0, uploadApi_1.getProfileId)(profileName, true);
-        console.log('profileIdFromName:', profileIdFromName);
         if (!uploadResponse.taskId) {
             core.setFailed('Task ID is not found in the upload response');
         }
