@@ -1,6 +1,8 @@
 import * as core from '@actions/core'
 import { exec, execSync } from 'child_process'
 
+import { getToken } from './api/authApi'
+
 function runCLICommand(command: string): Promise<string> {
   return new Promise((resolve, reject) => {
     exec(command, (error: any, stdout: any, stderr: any) => {
@@ -26,20 +28,18 @@ export async function run(): Promise<void> {
     const appPath = core.getInput('appPath')
     const message = core.getInput('message')
 
-    const loginResponse = await runCLICommand(
-      `appcircle login --pat=${accessToken}`
-    )
+    const loginResponse = await getToken(accessToken)
     console.log(loginResponse)
-    const response = await runCLICommand(
-      `appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}" -o json`
-    )
-    const taskId = JSON.parse(response)?.taskId
-    if (!taskId) {
-      core.setFailed('Task ID is not found in the upload response')
-    } else {
-      await checkTaskStatus(JSON.parse(response).taskId)
-      console.log(`${appPath} uploaded to Appcircle successfully`)
-    }
+    // const response = await runCLICommand(
+    //   `appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}" -o json`
+    // )
+    // const taskId = JSON.parse(response)?.taskId
+    // if (!taskId) {
+    //   core.setFailed('Task ID is not found in the upload response')
+    // } else {
+    //   await checkTaskStatus(JSON.parse(response).taskId)
+    //   console.log(`${appPath} uploaded to Appcircle successfully`)
+    // }
   } catch (error) {
     // Fail the workflow run if an error occurs
     if (error instanceof Error) core.setFailed(error.message)
