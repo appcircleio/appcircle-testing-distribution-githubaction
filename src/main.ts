@@ -29,6 +29,7 @@ export async function run(): Promise<void> {
     const message = core.getInput('message')
 
     const loginResponse = await getToken(accessToken)
+
     console.log(loginResponse)
     // const response = await runCLICommand(
     //   `appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}" -o json`
