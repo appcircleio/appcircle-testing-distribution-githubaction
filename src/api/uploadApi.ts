@@ -103,3 +103,23 @@ export async function getProfileId(
 
   return profileId
 }
+
+export async function checkTaskStatus(
+  token: string,
+  taskId: string,
+  currentAttempt = 0
+) {
+  const response = await fetch(`${API_HOSTNAME}/task/v1/tasks/${taskId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    }
+  })
+  const res = await response.json()
+  if ((res?.stateValue == 0 || res?.stateValue == 1) && currentAttempt < 100) {
+    return checkTaskStatus(token, taskId, currentAttempt + 1)
+  } else if (res?.stateValue === 2) {
+    throw new Error(`Build Upload Task Failed: ${res.stateName}`)
+  }
+}

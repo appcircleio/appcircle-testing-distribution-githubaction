@@ -28456,7 +28456,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getProfileId = exports.getDistributionProfiles = exports.createDistributionProfile = exports.uploadArtifact = exports.UploadServiceHeaders = exports.appcircleApi = void 0;
+exports.checkTaskStatus = exports.getProfileId = exports.getDistributionProfiles = exports.createDistributionProfile = exports.uploadArtifact = exports.UploadServiceHeaders = exports.appcircleApi = void 0;
 const axios_1 = __importDefault(__nccwpck_require__(8757));
 const fs_1 = __importDefault(__nccwpck_require__(7147));
 const form_data_1 = __importDefault(__nccwpck_require__(4334));
@@ -28531,6 +28531,23 @@ async function getProfileId(profileName, createProfileIfNotExists) {
     return profileId;
 }
 exports.getProfileId = getProfileId;
+async function checkTaskStatus(token, taskId, currentAttempt = 0) {
+    const response = await fetch(`${API_HOSTNAME}/task/v1/tasks/${taskId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        }
+    });
+    const res = await response.json();
+    if ((res?.stateValue == 0 || res?.stateValue == 1) && currentAttempt < 100) {
+        return checkTaskStatus(token, taskId, currentAttempt + 1);
+    }
+    else if (res?.stateValue === 2) {
+        throw new Error(`Build Upload Task Failed: ${res.stateName}`);
+    }
+}
+exports.checkTaskStatus = checkTaskStatus;
 
 
 /***/ }),
@@ -28566,22 +28583,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-const child_process_1 = __nccwpck_require__(2081);
 const authApi_1 = __nccwpck_require__(7790);
 const uploadApi_1 = __nccwpck_require__(77);
-function runCLICommand(command) {
-    return new Promise((resolve, reject) => {
-        (0, child_process_1.exec)(command, (error, stdout, stderr) => {
-            if (error) {
-                reject(error);
-                console.error(error);
-            }
-            else {
-                resolve(stdout);
-            }
-        });
-    });
-}
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
@@ -28595,6 +28598,7 @@ async function run() {
         const message = core.getInput('message');
         const loginResponse = await (0, authApi_1.getToken)(accessToken);
         uploadApi_1.UploadServiceHeaders.token = loginResponse.access_token;
+        console.log('Logged in to Appcircle successfully');
         const profileIdFromName = await (0, uploadApi_1.getProfileId)(profileName, createProfileIfNotExists);
         const uploadResponse = await (0, uploadApi_1.uploadArtifact)({
             message,
@@ -28605,7 +28609,7 @@ async function run() {
             core.setFailed('Task ID is not found in the upload response');
         }
         else {
-            await checkTaskStatus(loginResponse.access_token, uploadResponse.taskId);
+            await (0, uploadApi_1.checkTaskStatus)(loginResponse.access_token, uploadResponse.taskId);
             console.log(`${appPath} uploaded to Appcircle successfully`);
         }
     }
@@ -28616,22 +28620,6 @@ async function run() {
     }
 }
 exports.run = run;
-async function checkTaskStatus(token, taskId, currentAttempt = 0) {
-    const response = await fetch(`https://api.appcircle.io/task/v1/tasks/${taskId}`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-        }
-    });
-    const res = await response.json();
-    if ((res?.stateValue == 0 || res?.stateValue == 1) && currentAttempt < 100) {
-        return checkTaskStatus(token, taskId, currentAttempt + 1);
-    }
-    else if (res?.stateValue === 2) {
-        throw new Error(`Build Upload Task Failed: ${res.stateName}`);
-    }
-}
 
 
 /***/ }),
@@ -28657,14 +28645,6 @@ module.exports = require("async_hooks");
 
 "use strict";
 module.exports = require("buffer");
-
-/***/ }),
-
-/***/ 2081:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("child_process");
 
 /***/ }),
 

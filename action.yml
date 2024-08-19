@@ -25,7 +25,7 @@ inputs:
     description:
       'Specify whether to create a new app profile if one does not already
       exist.'
-    required: false
+    required: true
     type: boolean
   appPath:
     description:
