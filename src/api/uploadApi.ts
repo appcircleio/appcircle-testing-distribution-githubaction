@@ -74,7 +74,6 @@ export async function getProfileId(
   createProfileIfNotExists: boolean
 ): Promise<string> {
   const profiles = await getDistributionProfiles()
-  console.log('profiles:', profiles)
   let profileId: string | null = null
 
   for (const profile of profiles) {

@@ -28,24 +28,26 @@ function runCLICommand(command: string): Promise<string> {
 export async function run(): Promise<void> {
   try {
     const accessToken = core.getInput('accessToken')
-    const profileID = core.getInput('profileID')
     const profileName = core.getInput('profileName')
+    const createProfileIfNotExists = core.getBooleanInput(
+      'createProfileIfNotExists'
+    )
     const appPath = core.getInput('appPath')
     const message = core.getInput('message')
 
     const loginResponse = await getToken(accessToken)
     UploadServiceHeaders.token = loginResponse.access_token
 
-    const profileIdFromName = await getProfileId(profileName, true)
-    console.log('profileIdFromName:', profileIdFromName)
+    const profileIdFromName = await getProfileId(
+      profileName,
+      createProfileIfNotExists
+    )
 
     const uploadResponse = await uploadArtifact({
       message,
       app: appPath,
       distProfileId: profileIdFromName
     })
-
-    console.log('uploadResponse:', uploadResponse)
     if (!uploadResponse.taskId) {
       core.setFailed('Task ID is not found in the upload response')
     } else {

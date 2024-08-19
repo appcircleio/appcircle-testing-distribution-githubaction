@@ -28508,7 +28508,6 @@ async function getDistributionProfiles() {
 exports.getDistributionProfiles = getDistributionProfiles;
 async function getProfileId(profileName, createProfileIfNotExists) {
     const profiles = await getDistributionProfiles();
-    console.log('profiles:', profiles);
     let profileId = null;
     for (const profile of profiles) {
         if (profile.name === profileName) {
@@ -28590,20 +28589,18 @@ function runCLICommand(command) {
 async function run() {
     try {
         const accessToken = core.getInput('accessToken');
-        const profileID = core.getInput('profileID');
         const profileName = core.getInput('profileName');
+        const createProfileIfNotExists = core.getBooleanInput('createProfileIfNotExists');
         const appPath = core.getInput('appPath');
         const message = core.getInput('message');
         const loginResponse = await (0, authApi_1.getToken)(accessToken);
         uploadApi_1.UploadServiceHeaders.token = loginResponse.access_token;
-        const profileIdFromName = await (0, uploadApi_1.getProfileId)(profileName, true);
-        console.log('profileIdFromName:', profileIdFromName);
+        const profileIdFromName = await (0, uploadApi_1.getProfileId)(profileName, createProfileIfNotExists);
         const uploadResponse = await (0, uploadApi_1.uploadArtifact)({
             message,
             app: appPath,
             distProfileId: profileIdFromName
         });
-        console.log('uploadResponse:', uploadResponse);
         if (!uploadResponse.taskId) {
             core.setFailed('Task ID is not found in the upload response');
         }
