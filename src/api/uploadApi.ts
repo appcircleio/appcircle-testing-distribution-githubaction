@@ -1,5 +1,6 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import fs from 'fs'
+import FormData from 'form-data'
 
 const API_HOSTNAME = 'https://api.appcircle.io'
 export const appcircleApi = axios.create({

@@ -28447,6 +28447,52 @@ exports.getToken = getToken;
 
 /***/ }),
 
+/***/ 77:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.uploadArtifact = exports.getHeaders = exports.appcircleApi = void 0;
+const axios_1 = __importDefault(__nccwpck_require__(8757));
+const fs_1 = __importDefault(__nccwpck_require__(7147));
+const form_data_1 = __importDefault(__nccwpck_require__(4334));
+const API_HOSTNAME = 'https://api.appcircle.io';
+exports.appcircleApi = axios_1.default.create({
+    baseURL: API_HOSTNAME.endsWith('/') ? API_HOSTNAME : `${API_HOSTNAME}/`
+});
+const getHeaders = (token) => {
+    let response = {
+        accept: 'application/json',
+        'User-Agent': 'Appcircle CLI/1.0.3'
+    };
+    response.Authorization = `Bearer ${token}`;
+    return response;
+};
+exports.getHeaders = getHeaders;
+async function uploadArtifact(options) {
+    const data = new form_data_1.default();
+    data.append('Message', options.message);
+    data.append('File', fs_1.default.createReadStream(options.app));
+    const uploadResponse = await exports.appcircleApi.post(`distribution/v2/profiles/${options.distProfileId}/app-versions`, data, {
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+        headers: {
+            ...(0, exports.getHeaders)(options.token),
+            ...data.getHeaders(),
+            'Content-Type': 'multipart/form-data;boundary=' + data.getBoundary()
+        }
+    });
+    return uploadResponse.data;
+}
+exports.uploadArtifact = uploadArtifact;
+
+
+/***/ }),
+
 /***/ 399:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -28480,6 +28526,7 @@ exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const child_process_1 = __nccwpck_require__(2081);
 const authApi_1 = __nccwpck_require__(7790);
+const uploadApi_1 = __nccwpck_require__(77);
 function runCLICommand(command) {
     return new Promise((resolve, reject) => {
         (0, child_process_1.exec)(command, (error, stdout, stderr) => {
@@ -28505,6 +28552,13 @@ async function run() {
         const message = core.getInput('message');
         const loginResponse = await (0, authApi_1.getToken)(accessToken);
         console.log(loginResponse);
+        const uploadResponse = await (0, uploadApi_1.uploadArtifact)({
+            token: loginResponse.access_token,
+            message,
+            app: appPath,
+            distProfileId: profileID
+        });
+        console.log('uploadResponse:', uploadResponse);
         // const response = await runCLICommand(
         //   `appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}" -o json`
         // )
