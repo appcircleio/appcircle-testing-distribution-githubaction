@@ -2,6 +2,7 @@ import * as core from '@actions/core'
 import { exec, execSync } from 'child_process'
 
 import { getToken } from './api/authApi'
+import { uploadArtifact } from './api/uploadApi'
 
 function runCLICommand(command: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -30,6 +31,16 @@ export async function run(): Promise<void> {
     const loginResponse = await getToken(accessToken)
 
     console.log(loginResponse)
+
+    const uploadResponse = await uploadArtifact({
+      token: loginResponse.access_token,
+      message,
+      app: appPath,
+      distProfileId: profileID
+    })
+
+    console.log('uploadResponse:', uploadResponse)
+
     // const response = await runCLICommand(
     //   `appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}" -o json`
     // )
