@@ -28559,16 +28559,13 @@ async function run() {
             distProfileId: profileID
         });
         console.log('uploadResponse:', uploadResponse);
-        // const response = await runCLICommand(
-        //   `appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}" -o json`
-        // )
-        // const taskId = JSON.parse(response)?.taskId
-        // if (!taskId) {
-        //   core.setFailed('Task ID is not found in the upload response')
-        // } else {
-        //   await checkTaskStatus(JSON.parse(response).taskId)
-        //   console.log(`${appPath} uploaded to Appcircle successfully`)
-        // }
+        if (!uploadResponse.taskId) {
+            core.setFailed('Task ID is not found in the upload response');
+        }
+        else {
+            await checkTaskStatus(uploadResponse.taskId);
+            console.log(`${appPath} uploaded to Appcircle successfully`);
+        }
     }
     catch (error) {
         // Fail the workflow run if an error occurs
