@@ -28499,7 +28499,6 @@ function runCLICommand(command) {
  */
 async function run() {
     try {
-        await runCLICommand(`npm install -g @appcircle/cli`);
         const accessToken = core.getInput('accessToken');
         const profileID = core.getInput('profileID');
         const appPath = core.getInput('appPath');

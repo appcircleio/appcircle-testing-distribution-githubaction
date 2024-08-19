@@ -22,7 +22,6 @@ function runCLICommand(command: string): Promise<string> {
  */
 export async function run(): Promise<void> {
   try {
-    await runCLICommand(`npm install -g @appcircle/cli`)
     const accessToken = core.getInput('accessToken')
     const profileID = core.getInput('profileID')
     const appPath = core.getInput('appPath')
