@@ -28456,7 +28456,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.uploadArtifact = exports.getHeaders = exports.appcircleApi = void 0;
+exports.getProfileId = exports.getDistributionProfiles = exports.createDistributionProfile = exports.uploadArtifact = exports.UploadServiceHeaders = exports.appcircleApi = void 0;
 const axios_1 = __importDefault(__nccwpck_require__(8757));
 const fs_1 = __importDefault(__nccwpck_require__(7147));
 const form_data_1 = __importDefault(__nccwpck_require__(4334));
@@ -28464,15 +28464,18 @@ const API_HOSTNAME = 'https://api.appcircle.io';
 exports.appcircleApi = axios_1.default.create({
     baseURL: API_HOSTNAME.endsWith('/') ? API_HOSTNAME : `${API_HOSTNAME}/`
 });
-const getHeaders = (token) => {
-    let response = {
-        accept: 'application/json',
-        'User-Agent': 'Appcircle CLI/1.0.3'
+class UploadServiceHeaders {
+    static token = '';
+    static getHeaders = () => {
+        let response = {
+            accept: 'application/json',
+            'User-Agent': 'Appcircle Github Action'
+        };
+        response.Authorization = `Bearer ${UploadServiceHeaders.token}`;
+        return response;
     };
-    response.Authorization = `Bearer ${token}`;
-    return response;
-};
-exports.getHeaders = getHeaders;
+}
+exports.UploadServiceHeaders = UploadServiceHeaders;
 async function uploadArtifact(options) {
     const data = new form_data_1.default();
     data.append('Message', options.message);
@@ -28481,7 +28484,7 @@ async function uploadArtifact(options) {
         maxContentLength: Infinity,
         maxBodyLength: Infinity,
         headers: {
-            ...(0, exports.getHeaders)(options.token),
+            ...UploadServiceHeaders.getHeaders(),
             ...data.getHeaders(),
             'Content-Type': 'multipart/form-data;boundary=' + data.getBoundary()
         }
@@ -28489,6 +28492,43 @@ async function uploadArtifact(options) {
     return uploadResponse.data;
 }
 exports.uploadArtifact = uploadArtifact;
+async function createDistributionProfile(name) {
+    const response = await exports.appcircleApi.post(`distribution/v2/profiles`, { name: name }, {
+        headers: UploadServiceHeaders.getHeaders()
+    });
+    return response.data;
+}
+exports.createDistributionProfile = createDistributionProfile;
+async function getDistributionProfiles() {
+    const distributionProfiles = await exports.appcircleApi.get(`distribution/v2/profiles`, {
+        headers: UploadServiceHeaders.getHeaders()
+    });
+    return distributionProfiles.data;
+}
+exports.getDistributionProfiles = getDistributionProfiles;
+async function getProfileId(profileName, createProfileIfNotExists) {
+    const profiles = await getDistributionProfiles();
+    console.log('profiles:', profiles);
+    let profileId = null;
+    for (const profile of profiles) {
+        if (profile.name === profileName) {
+            profileId = profile.id;
+            break;
+        }
+    }
+    if (profileId === null && !createProfileIfNotExists) {
+        throw new Error(`Error: The test profile '${profileName}' could not be found. The option 'createProfileIfNotExists' is set to false, so no new profile was created. To automatically create a new profile if it doesn't exist, set 'createProfileIfNotExists' to true.`);
+    }
+    if (profileId === null && createProfileIfNotExists) {
+        const newProfile = await createDistributionProfile(profileName);
+        if (!newProfile || newProfile === null) {
+            throw new Error('Error: The new profile could not be created.');
+        }
+        profileId = newProfile.id;
+    }
+    return profileId;
+}
+exports.getProfileId = getProfileId;
 
 
 /***/ }),
@@ -28548,17 +28588,20 @@ async function run() {
     try {
         const accessToken = core.getInput('accessToken');
         const profileID = core.getInput('profileID');
+        const profileName = core.getInput('profileName');
         const appPath = core.getInput('appPath');
         const message = core.getInput('message');
         const loginResponse = await (0, authApi_1.getToken)(accessToken);
+        uploadApi_1.UploadServiceHeaders.token = loginResponse.access_token;
         console.log(loginResponse);
         const uploadResponse = await (0, uploadApi_1.uploadArtifact)({
-            token: loginResponse.access_token,
             message,
             app: appPath,
             distProfileId: profileID
         });
         console.log('uploadResponse:', uploadResponse);
+        const profileIdFromName = await (0, uploadApi_1.getProfileId)(profileName, true);
+        console.log('profileIdFromName:', profileIdFromName);
         if (!uploadResponse.taskId) {
             core.setFailed('Task ID is not found in the upload response');
         }

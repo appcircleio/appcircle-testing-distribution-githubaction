@@ -7,19 +7,22 @@ export const appcircleApi = axios.create({
   baseURL: API_HOSTNAME.endsWith('/') ? API_HOSTNAME : `${API_HOSTNAME}/`
 })
 
-export const getHeaders = (token: string): AxiosRequestConfig['headers'] => {
-  let response: AxiosRequestConfig['headers'] = {
-    accept: 'application/json',
-    'User-Agent': 'Appcircle CLI/1.0.3'
+export class UploadServiceHeaders {
+  static token = ''
+
+  static getHeaders = (): AxiosRequestConfig['headers'] => {
+    let response: AxiosRequestConfig['headers'] = {
+      accept: 'application/json',
+      'User-Agent': 'Appcircle Github Action'
+    }
+
+    response.Authorization = `Bearer ${UploadServiceHeaders.token}`
+
+    return response
   }
-
-  response.Authorization = `Bearer ${token}`
-
-  return response
 }
 
 export async function uploadArtifact(options: {
-  token: string
   message: string
   app: string
   distProfileId: string
@@ -35,7 +38,7 @@ export async function uploadArtifact(options: {
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
       headers: {
-        ...getHeaders(options.token),
+        ...UploadServiceHeaders.getHeaders(),
         ...data.getHeaders(),
         'Content-Type': 'multipart/form-data;boundary=' + data.getBoundary()
       }
@@ -43,4 +46,57 @@ export async function uploadArtifact(options: {
   )
 
   return uploadResponse.data
+}
+
+export async function createDistributionProfile(name: string) {
+  const response = await appcircleApi.post(
+    `distribution/v2/profiles`,
+    { name: name },
+    {
+      headers: UploadServiceHeaders.getHeaders()
+    }
+  )
+  return response.data
+}
+
+export async function getDistributionProfiles() {
+  const distributionProfiles = await appcircleApi.get(
+    `distribution/v2/profiles`,
+    {
+      headers: UploadServiceHeaders.getHeaders()
+    }
+  )
+  return distributionProfiles.data
+}
+
+export async function getProfileId(
+  profileName: string,
+  createProfileIfNotExists: boolean
+): Promise<string | null> {
+  const profiles = await getDistributionProfiles()
+  console.log('profiles:', profiles)
+  let profileId: string | null = null
+
+  for (const profile of profiles) {
+    if (profile.name === profileName) {
+      profileId = profile.id
+      break
+    }
+  }
+
+  if (profileId === null && !createProfileIfNotExists) {
+    throw new Error(
+      `Error: The test profile '${profileName}' could not be found. The option 'createProfileIfNotExists' is set to false, so no new profile was created. To automatically create a new profile if it doesn't exist, set 'createProfileIfNotExists' to true.`
+    )
+  }
+
+  if (profileId === null && createProfileIfNotExists) {
+    const newProfile = await createDistributionProfile(profileName)
+    if (!newProfile || newProfile === null) {
+      throw new Error('Error: The new profile could not be created.')
+    }
+    profileId = newProfile.id
+  }
+
+  return profileId
 }

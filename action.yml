@@ -20,6 +20,12 @@ inputs:
       'Enter the ID of the Appcircle distribution profile. This ID uniquely
       identifies the profile under which your applications will be distributed'
     required: true
+  profileName:
+    description:
+      'Enter the profile name of the Appcircle distribution profile. This name
+      uniquely identifies the profile under which your applications will be
+      distributed'
+    required: true
   appPath:
     description:
       'Specify the path to your application file. For iOS, this can be a .ipa or
