@@ -28563,7 +28563,7 @@ async function run() {
             core.setFailed('Task ID is not found in the upload response');
         }
         else {
-            await checkTaskStatus(uploadResponse.taskId);
+            await checkTaskStatus(loginResponse.access_token, uploadResponse.taskId);
             console.log(`${appPath} uploaded to Appcircle successfully`);
         }
     }
@@ -28574,20 +28574,17 @@ async function run() {
     }
 }
 exports.run = run;
-async function checkTaskStatus(taskId, currentAttempt = 0) {
-    const tokenCommand = `appcircle config get AC_ACCESS_TOKEN -o json`;
-    const output = (0, child_process_1.execSync)(tokenCommand, { encoding: 'utf-8' });
-    const apiAccessToken = JSON.parse(output)?.AC_ACCESS_TOKEN;
+async function checkTaskStatus(token, taskId, currentAttempt = 0) {
     const response = await fetch(`https://api.appcircle.io/task/v1/tasks/${taskId}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiAccessToken}`
+            Authorization: `Bearer ${token}`
         }
     });
     const res = await response.json();
     if ((res?.stateValue == 0 || res?.stateValue == 1) && currentAttempt < 100) {
-        return checkTaskStatus(taskId, currentAttempt + 1);
+        return checkTaskStatus(token, taskId, currentAttempt + 1);
     }
     else if (res?.stateValue === 2) {
         throw new Error(`Build Upload Task Failed: ${res.stateName}`);
