@@ -99,7 +99,8 @@ Local Action' with the appropriate information.
   uses: appcircleio/appcircle-testing-distribution-githubaction
   with:
     accessToken: ${{ secrets.AC_ACCESS_TOKEN }} # Your Appcircle Access Token
-    profileID: ${{ secrets.AC_PROFILE_ID }} # ID of your Appcircle Distribution Profile
+    profileName: ${{ secrets.AC_PROFILE_NAME }}
+    createProfileIfNotExists: ${{ secrets.CREATE_PROFILE_IF_NOT_EXISTS }}
     appPath: ${{ secrets.APP_PATH }} # Path to your iOS .ipa or .xcarchive, or Android APK or App Bundle
     message: ${{ secrets.MESSAGE }}
 ```
