@@ -28523,6 +28523,7 @@ async function getProfileId(profileName, createProfileIfNotExists) {
         if (!newProfile || newProfile === null) {
             throw new Error('Error: The new profile could not be created.');
         }
+        console.log(`New profile created: ${newProfile.name}`);
         profileId = newProfile.id;
     }
     if (!profileId) {
@@ -28599,7 +28600,7 @@ async function run() {
         const validExtensions = ['.ipa', '.apk', '.zip', '.aab'];
         const fileExtension = appPath.slice(appPath.lastIndexOf('.')).toLowerCase();
         if (!validExtensions.includes(fileExtension)) {
-            core.setFailed(`Invalid file extension: ${appPath}. For Android, use .apk or .aab. For iOS, use .ip, or use zip.`);
+            core.setFailed(`Invalid file extension: ${appPath}. For Android, use .apk. For iOS, use .ipa.`);
             return;
         }
         const loginResponse = await (0, authApi_1.getToken)(personalAPIToken);

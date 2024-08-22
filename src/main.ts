@@ -26,7 +26,7 @@ export async function run(): Promise<void> {
     const fileExtension = appPath.slice(appPath.lastIndexOf('.')).toLowerCase()
     if (!validExtensions.includes(fileExtension)) {
       core.setFailed(
-        `Invalid file extension: ${appPath}. For Android, use .apk or .aab. For iOS, use .ip, or use zip.`
+        `Invalid file extension: ${appPath}. For Android, use .apk. For iOS, use .ipa.`
       )
       return
     }

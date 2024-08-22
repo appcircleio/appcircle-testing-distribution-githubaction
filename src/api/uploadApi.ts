@@ -94,6 +94,8 @@ export async function getProfileId(
     if (!newProfile || newProfile === null) {
       throw new Error('Error: The new profile could not be created.')
     }
+
+    console.log(`New profile created: ${newProfile.name}`)
     profileId = newProfile.id
   }
 
