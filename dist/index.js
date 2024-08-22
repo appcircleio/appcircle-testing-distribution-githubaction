@@ -28447,7 +28447,7 @@ exports.getToken = getToken;
 
 /***/ }),
 
-/***/ 77:
+/***/ 6077:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -28584,19 +28584,19 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const authApi_1 = __nccwpck_require__(7790);
-const uploadApi_1 = __nccwpck_require__(77);
+const uploadApi_1 = __nccwpck_require__(6077);
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
  */
 async function run() {
     try {
-        const accessToken = core.getInput('accessToken');
+        const personalAPIToken = core.getInput('personalAPIToken');
         const profileName = core.getInput('profileName');
         const createProfileIfNotExists = core.getBooleanInput('createProfileIfNotExists');
         const appPath = core.getInput('appPath');
         const message = core.getInput('message');
-        const loginResponse = await (0, authApi_1.getToken)(accessToken);
+        const loginResponse = await (0, authApi_1.getToken)(personalAPIToken);
         uploadApi_1.UploadServiceHeaders.token = loginResponse.access_token;
         console.log('Logged in to Appcircle successfully');
         const profileIdFromName = await (0, uploadApi_1.getProfileId)(profileName, createProfileIfNotExists);
