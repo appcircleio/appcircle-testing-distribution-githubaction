@@ -14,7 +14,7 @@ import {
  */
 export async function run(): Promise<void> {
   try {
-    const accessToken = core.getInput('accessToken')
+    const personalAPIToken = core.getInput('personalAPIToken')
     const profileName = core.getInput('profileName')
     const createProfileIfNotExists = core.getBooleanInput(
       'createProfileIfNotExists'
@@ -22,7 +22,7 @@ export async function run(): Promise<void> {
     const appPath = core.getInput('appPath')
     const message = core.getInput('message')
 
-    const loginResponse = await getToken(accessToken)
+    const loginResponse = await getToken(personalAPIToken)
     UploadServiceHeaders.token = loginResponse.access_token
     console.log('Logged in to Appcircle successfully')
 
