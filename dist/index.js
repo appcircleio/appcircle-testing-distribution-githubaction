@@ -28596,6 +28596,12 @@ async function run() {
         const createProfileIfNotExists = core.getBooleanInput('createProfileIfNotExists');
         const appPath = core.getInput('appPath');
         const message = core.getInput('message');
+        const validExtensions = ['.ipa', '.apk', '.zip', '.aab'];
+        const fileExtension = appPath.slice(appPath.lastIndexOf('.')).toLowerCase();
+        if (!validExtensions.includes(fileExtension)) {
+            core.setFailed(`Invalid file extension: ${appPath}. For Android, use .apk or .aab. For iOS, use .ip, or use zip.`);
+            return;
+        }
         const loginResponse = await (0, authApi_1.getToken)(personalAPIToken);
         uploadApi_1.UploadServiceHeaders.token = loginResponse.access_token;
         console.log('Logged in to Appcircle successfully');
