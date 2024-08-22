@@ -9,7 +9,7 @@ branding:
   color: 'blue'
 
 inputs:
-  accessToken:
+  personalAPIToken:
     description:
       'Provide Appcircle Personal API Token to authenticate Appcircle services.'
     required: true
