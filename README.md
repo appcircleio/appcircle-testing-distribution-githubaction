@@ -109,10 +109,10 @@ Local Action' with the appropriate information.
   id: testing-distribution-appcircle
   uses: appcircleio/appcircle-testing-distribution-githubaction
   with:
-    personalAPIToken: ${{ secrets.AC_PROFLE_API_TOKEN }} # Appcircle Personal API Token
+    personalAPIToken: ${{ secrets.AC_PROFLE_API_TOKEN }}
     profileName: ${{ secrets.AC_PROFILE_NAME }}
     createProfileIfNotExists: ${{ secrets.CREATE_PROFILE_IF_NOT_EXISTS }}
-    appPath: ${{ secrets.APP_PATH }} # Path to your iOS .ipa or .xcarchive, or Android APK or App Bundle
+    appPath: ${{ secrets.APP_PATH }}
     message: ${{ secrets.MESSAGE }}
 ```
 
