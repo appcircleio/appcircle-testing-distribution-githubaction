@@ -70,6 +70,17 @@ Overall, using testing distribution in mobile DevOps significantly enhances the
 efficiency, security, and effectiveness of the software development process,
 leading to better products and faster delivery times.
 
+## System Requirements
+
+**Compatible Agents:**
+
+- macOS
+- Ubuntu
+- Ventura
+
+Note: We currently support **Appcircle Cloud**, with **self-hosted** support
+planned in our roadmap.
+
 ### Testing Distribution
 
 In order to share your builds with testers, you can create distribution profiles
@@ -105,11 +116,17 @@ Local Action' with the appropriate information.
     message: ${{ secrets.MESSAGE }}
 ```
 
-#### Automatic Profile Management
-
-**createProfileIfNotExists** paramater ensures that a user profile is
-automatically created if it does not already exist; if the profile name already
-exists, the app will be uploaded to that existing profile instead.
+- `personalAPIToken`: The Appcircle Personal API token is utilized to
+  authenticate and secure access to Appcircle services, ensuring that only
+  authorized users can perform actions within the platform.
+- `profileName`: Specifies the profile that will be used for uploading the app.
+- `createProfileIfNotExists`: Ensures that a user profile is automatically
+  created if it does not already exist; if the profile name already exists, the
+  app will be uploaded to that existing profile instead.
+- `appPath`: Indicates the file path to the application that will be uploaded to
+  Appcircle Testing Distribution Profile.
+- `message`: Your message to testers, ensuring they receive important updates
+  and information regarding the application.
 
 ### Leveraging Environment Variables
 
@@ -125,7 +142,7 @@ need support or more information, please
 
 ### Reference
 
-- For details on generating an Appcircle Personal Access Token, visit
+- For details on generating an Appcircle Personal API Token, visit
   [Generating/Managing Personal API Tokens](https://docs.appcircle.io/appcircle-api/api-authentication#generatingmanaging-the-personal-api-tokens?utm_source=github&utm_medium=plugin&utm_campaign=testing_distribution)
 
 - To create or learn more about Appcircle testing and distribution profiles,
