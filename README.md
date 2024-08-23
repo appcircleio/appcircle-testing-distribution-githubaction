@@ -94,16 +94,22 @@ assign testing groups to these profiles. Add a step to your pipeline for 'Test
 Local Action' with the appropriate information.
 
 ```yaml
-- name: Test Local Action
-  id: testing-distribution
+- name: Publish App to Appcircle
+  id: testing-distribution-appcircle
   uses: appcircleio/appcircle-testing-distribution-githubaction
   with:
-    accessToken: ${{ secrets.AC_ACCESS_TOKEN }} # Your Appcircle Access Token
+    personalAPIToken: ${{ secrets.AC_PROFLE_API_TOKEN }} # Appcircle Personal API Token
     profileName: ${{ secrets.AC_PROFILE_NAME }}
     createProfileIfNotExists: ${{ secrets.CREATE_PROFILE_IF_NOT_EXISTS }}
     appPath: ${{ secrets.APP_PATH }} # Path to your iOS .ipa or .xcarchive, or Android APK or App Bundle
     message: ${{ secrets.MESSAGE }}
 ```
+
+#### Automatic Profile Management
+
+**createProfileIfNotExists** paramater ensures that a user profile is
+automatically created if it does not already exist; if the profile name already
+exists, the app will be uploaded to that existing profile instead.
 
 ### Leveraging Environment Variables
 
