@@ -28597,10 +28597,13 @@ async function run() {
         const createProfileIfNotExists = core.getBooleanInput('createProfileIfNotExists');
         const appPath = core.getInput('appPath');
         const message = core.getInput('message');
-        const validExtensions = ['.ipa', '.apk', '.zip', '.aab'];
+        const validExtensions = ['.ipa', '.apk', '.aab', '.zip'];
         const fileExtension = appPath.slice(appPath.lastIndexOf('.')).toLowerCase();
         if (!validExtensions.includes(fileExtension)) {
-            core.setFailed(`Invalid file extension: ${appPath}. For Android, use .apk. For iOS, use .ipa.`);
+            core.setFailed(`Invalid file extension for '${appPath}'. Please use one of the following:\n` +
+                `- Android: .apk or .aab\n` +
+                `- iOS: .ipa\n` +
+                `- Both: .zip`);
             return;
         }
         const loginResponse = await (0, authApi_1.getToken)(personalAPIToken);
