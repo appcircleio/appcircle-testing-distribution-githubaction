@@ -28602,8 +28602,7 @@ async function run() {
         if (!validExtensions.includes(fileExtension)) {
             core.setFailed(`Invalid file extension for '${appPath}'. Please use one of the following:\n` +
                 `- Android: .apk or .aab\n` +
-                `- iOS: .ipa\n` +
-                `- Both: .zip`);
+                `- iOS: .ipa or .zip(.xcarchive)`);
             return;
         }
         const loginResponse = await (0, authApi_1.getToken)(personalAPIToken);
