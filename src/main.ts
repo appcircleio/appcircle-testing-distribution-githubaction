@@ -1,18 +1,12 @@
 import * as core from '@actions/core'
-import { exec, execSync } from 'child_process'
 
-function runCLICommand(command: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    exec(command, (error: any, stdout: any, stderr: any) => {
-      if (error) {
-        reject(error)
-        console.error(error)
-      } else {
-        resolve(stdout)
-      }
-    })
-  })
-}
+import { getToken } from './api/authApi'
+import {
+  checkTaskStatus,
+  getProfileId,
+  uploadArtifact,
+  UploadServiceHeaders
+} from './api/uploadApi'
 
 /**
  * The main function for the action.
@@ -20,50 +14,47 @@ function runCLICommand(command: string): Promise<string> {
  */
 export async function run(): Promise<void> {
   try {
-    await runCLICommand(`npm install -g @appcircle/cli`)
-    const accessToken = core.getInput('accessToken')
-    const profileID = core.getInput('profileID')
+    const personalAPIToken = core.getInput('personalAPIToken')
+    const profileName = core.getInput('profileName')
+    const createProfileIfNotExists = core.getBooleanInput(
+      'createProfileIfNotExists'
+    )
     const appPath = core.getInput('appPath')
     const message = core.getInput('message')
 
-    const loginResponse = await runCLICommand(
-      `appcircle login --pat=${accessToken}`
+    const validExtensions = ['.ipa', '.apk', '.aab', '.zip']
+    const fileExtension = appPath.slice(appPath.lastIndexOf('.')).toLowerCase()
+    if (!validExtensions.includes(fileExtension)) {
+      core.setFailed(
+        `Invalid file extension for '${appPath}'. Please use one of the following:\n` +
+          `- Android: .apk or .aab\n` +
+          `- iOS: .ipa or .zip(.xcarchive)`
+      )
+      return
+    }
+
+    const loginResponse = await getToken(personalAPIToken)
+    UploadServiceHeaders.token = loginResponse.access_token
+    console.log('Logged in to Appcircle successfully')
+
+    const profileIdFromName = await getProfileId(
+      profileName,
+      createProfileIfNotExists
     )
-    console.log(loginResponse)
-    const response = await runCLICommand(
-      `appcircle testing-distribution upload --app=${appPath} --distProfileId=${profileID} --message "${message}" -o json`
-    )
-    const taskId = JSON.parse(response)?.taskId
-    if (!taskId) {
+
+    const uploadResponse = await uploadArtifact({
+      message,
+      app: appPath,
+      distProfileId: profileIdFromName
+    })
+    if (!uploadResponse.taskId) {
       core.setFailed('Task ID is not found in the upload response')
     } else {
-      await checkTaskStatus(JSON.parse(response).taskId)
+      await checkTaskStatus(loginResponse.access_token, uploadResponse.taskId)
       console.log(`${appPath} uploaded to Appcircle successfully`)
     }
   } catch (error) {
     // Fail the workflow run if an error occurs
     if (error instanceof Error) core.setFailed(error.message)
-  }
-}
-
-async function checkTaskStatus(taskId: string, currentAttempt = 0) {
-  const tokenCommand = `appcircle config get AC_ACCESS_TOKEN -o json`
-  const output = execSync(tokenCommand, { encoding: 'utf-8' })
-  const apiAccessToken = JSON.parse(output)?.AC_ACCESS_TOKEN
-  const response = await fetch(
-    `https://api.appcircle.io/task/v1/tasks/${taskId}`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiAccessToken}`
-      }
-    }
-  )
-  const res = await response.json()
-  if ((res?.stateValue == 0 || res?.stateValue == 1) && currentAttempt < 100) {
-    return checkTaskStatus(taskId, currentAttempt + 1)
-  } else if (res?.stateValue === 2) {
-    throw new Error(`Build Upload Task Failed: ${res.stateName}`)
   }
 }

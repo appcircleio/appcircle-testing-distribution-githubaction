@@ -70,6 +70,17 @@ Overall, using testing distribution in mobile DevOps significantly enhances the
 efficiency, security, and effectiveness of the software development process,
 leading to better products and faster delivery times.
 
+## System Requirements
+
+**Compatible Agents:**
+
+- macOS
+- Ubuntu
+- Ventura
+
+Note: We currently support **Appcircle Cloud**, with **self-hosted** support
+planned in our roadmap.
+
 ### Testing Distribution
 
 In order to share your builds with testers, you can create distribution profiles
@@ -94,15 +105,28 @@ assign testing groups to these profiles. Add a step to your pipeline for 'Test
 Local Action' with the appropriate information.
 
 ```yaml
-- name: Test Local Action
-  id: testing-distribution
+- name: Publish App to Appcircle
+  id: testing-distribution-appcircle
   uses: appcircleio/appcircle-testing-distribution-githubaction
   with:
-    accessToken: ${{ secrets.AC_ACCESS_TOKEN }} # Your Appcircle Access Token
-    profileID: ${{ secrets.AC_PROFILE_ID }} # ID of your Appcircle Distribution Profile
-    appPath: ${{ secrets.APP_PATH }} # Path to your iOS .ipa or .xcarchive, or Android APK or App Bundle
+    personalAPIToken: ${{ secrets.AC_PROFLE_API_TOKEN }}
+    profileName: ${{ secrets.AC_PROFILE_NAME }}
+    createProfileIfNotExists: ${{ secrets.CREATE_PROFILE_IF_NOT_EXISTS }}
+    appPath: ${{ secrets.APP_PATH }}
     message: ${{ secrets.MESSAGE }}
 ```
+
+- `personalAPIToken`: The Appcircle Personal API token is utilized to
+  authenticate and secure access to Appcircle services, ensuring that only
+  authorized users can perform actions within the platform.
+- `profileName`: Specifies the profile that will be used for uploading the app.
+- `createProfileIfNotExists`: Ensures that a user profile is automatically
+  created if it does not already exist; if the profile name already exists, the
+  app will be uploaded to that existing profile instead.
+- `appPath`: Indicates the file path to the application that will be uploaded to
+  Appcircle Testing Distribution Profile.
+- `message`: Your message to testers, ensuring they receive important updates
+  and information regarding the application.
 
 ### Leveraging Environment Variables
 
@@ -118,7 +142,7 @@ need support or more information, please
 
 ### Reference
 
-- For details on generating an Appcircle Personal Access Token, visit
+- For details on generating an Appcircle Personal API Token, visit
   [Generating/Managing Personal API Tokens](https://docs.appcircle.io/appcircle-api/api-authentication#generatingmanaging-the-personal-api-tokens?utm_source=github&utm_medium=plugin&utm_campaign=testing_distribution)
 
 - To create or learn more about Appcircle testing and distribution profiles,
