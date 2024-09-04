@@ -74,12 +74,11 @@ leading to better products and faster delivery times.
 
 **Compatible Agents:**
 
-- macOS
-- Ubuntu
-- Ventura
+- macos-14 (arm64)
+- Ubuntu-22.04
 
-Note: We currently support **Appcircle Cloud**, with **self-hosted** support
-planned in our roadmap.
+Note: Currently, plugins are only compatible to use with **Appcircle Cloud**.
+**Self-hosted** support will be available in future releases.
 
 ### Testing Distribution
 
@@ -133,6 +132,13 @@ Local Action' with the appropriate information.
 Utilize environment variables seamlessly by substituting the parameters with
 `${{ envs.VARIABLE_NAME }}` in your task inputs. The extension automatically
 retrieves values from the specified environment variables within your pipeline.
+
+**Ensure that this action is added after build steps have been completed.**
+
+**If multiple workflows start simultaneously, the order in which versions are
+shared in the Testing Distribution is determined by the execution order of the
+publish step. The version that completes its build and triggers the publish
+plugin first will be shared first, followed by the others in sequence.**
 
 Efficiently distribute test binaries or beta versions using Appcircle, featuring
 seamless IPA and APK distribution capabilities. Streamline your testing process
