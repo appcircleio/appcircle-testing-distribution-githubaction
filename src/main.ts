@@ -22,13 +22,13 @@ export async function run(): Promise<void> {
     const appPath = core.getInput('appPath')
     const message = core.getInput('message')
 
-    const validExtensions = ['.ipa', '.apk', '.aab', '.zip']
+    const validExtensions = ['.ipa', '.apk', '.aab']
     const fileExtension = appPath.slice(appPath.lastIndexOf('.')).toLowerCase()
     if (!validExtensions.includes(fileExtension)) {
       core.setFailed(
         `Invalid file extension for '${appPath}'. Please use one of the following:\n` +
           `- Android: .apk or .aab\n` +
-          `- iOS: .ipa or .zip(.xcarchive)`
+          `- iOS: .ipa`
       )
       return
     }
