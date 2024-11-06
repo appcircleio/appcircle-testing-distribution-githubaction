@@ -24,7 +24,7 @@ enterprise-grade authentication methods.
 ## Benefits of Using Testing Distribution
 
 1. **Simplified Binary Distribution**.
-   - **Skip Traditional Stores:** Share .xcarchive .IPA, APK, AAB, Zip, files
+   - **Skip Traditional Stores:** Share .IPA, APK, AAB, files
      directly, avoiding the need to use App Store TestFlight or Google Play
      Internal Testing.
 2. **Streamlined Workflow:**
