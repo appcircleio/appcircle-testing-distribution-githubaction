@@ -1,6 +1,7 @@
 import axios, { AxiosRequestConfig } from 'axios'
 import fs from 'fs'
 import FormData from 'form-data'
+import path from 'path';
 
 const API_HOSTNAME = 'https://api.appcircle.io'
 export const appcircleApi = axios.create({
@@ -27,25 +28,55 @@ export async function uploadArtifact(options: {
   app: string
   distProfileId: string
 }) {
-  const data = new FormData()
-  data.append('Message', options.message)
-  data.append('File', fs.createReadStream(options.app))
+  const filePath = options.app
+  const fileStat = fs.statSync(filePath)
+  const fileName = path.basename(filePath)
+  const fileSize = fileStat.size
 
-  const uploadResponse = await appcircleApi.post(
-    `distribution/v2/profiles/${options.distProfileId}/app-versions`,
-    data,
+  const uploadInfoResponse = await appcircleApi.get<{
+    fileId: string;
+    uploadUrl: string;
+  }>(
+    `distribution/v1/profiles/${options.distProfileId}/app-versions`,
     {
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
-      headers: {
-        ...UploadServiceHeaders.getHeaders(),
-        ...data.getHeaders(),
-        'Content-Type': 'multipart/form-data;boundary=' + data.getBoundary()
-      }
+      params: {
+        action: 'uploadInformation',
+        fileName: fileName,
+        fileSize: fileSize
+      },
+      headers: UploadServiceHeaders.getHeaders()
     }
-  )
+  );
 
-  return uploadResponse.data
+  const { fileId, uploadUrl } = uploadInfoResponse.data;
+
+  const fileContent = fs.readFileSync(filePath);
+  await axios.put(uploadUrl, fileContent, {
+    headers: {
+      'Content-Type': 'application/octet-stream'
+    },
+    maxContentLength: Infinity,
+    maxBodyLength: Infinity
+  });
+
+  const commitResponse = await appcircleApi.post<{
+    taskId: string;
+  }>(
+    `distribution/v1/profiles/${options.distProfileId}/app-versions`,
+    {
+      fileId: fileId,
+      fileName: fileName,
+      message: options.message
+    },
+    {
+      params: {
+        action: 'commitFileUpload'
+      },
+      headers: UploadServiceHeaders.getHeaders()
+    }
+  );
+
+  return commitResponse.data;
 }
 
 export async function createDistributionProfile(name: string) {
