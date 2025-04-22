@@ -35,7 +35,7 @@ export async function run(): Promise<void> {
 
     const loginResponse = await getToken(personalAPIToken)
     UploadServiceHeaders.token = loginResponse.access_token
-    console.log('Logged in to Appcircle successfully')
+    console.log('Logged into Appcircle successfully.')
 
     const profileIdFromName = await getProfileId(
       profileName,

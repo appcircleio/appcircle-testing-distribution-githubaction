@@ -33,6 +33,7 @@ export async function uploadArtifact(options: {
   const fileName = path.basename(filePath)
   const fileSize = fileStat.size
 
+  console.log("Getting file upload information...")
   const uploadInfoResponse = await appcircleApi.get<{
     fileId: string;
     uploadUrl: string;
@@ -47,18 +48,29 @@ export async function uploadArtifact(options: {
       headers: UploadServiceHeaders.getHeaders()
     }
   );
+  if (uploadInfoResponse.status < 200 || uploadInfoResponse.status >= 300) {
+    throw new Error("Failed to retrieve file upload information with status code: " + uploadInfoResponse.status)
+  }
+  console.log("File upload information retrieved successfully with status code:", uploadInfoResponse.status)
 
   const { fileId, uploadUrl } = uploadInfoResponse.data;
 
   const fileContent = fs.readFileSync(filePath);
-  await axios.put(uploadUrl, fileContent, {
+
+  console.log("Uploading file to Appcircle...")
+  const uploadResponse = await axios.put(uploadUrl, fileContent, {
     headers: {
       'Content-Type': 'application/octet-stream'
     },
     maxContentLength: Infinity,
     maxBodyLength: Infinity
   });
+  if (uploadResponse.status < 200 || uploadResponse.status >= 300) {
+    throw new Error("Failed to upload file with status code: " + uploadResponse.status)
+  }
+  console.log("File upload finished successfully with status code:", uploadResponse.status)
 
+  console.log("Committing file upload...")
   const commitResponse = await appcircleApi.post<{
     taskId: string;
   }>(
@@ -75,6 +87,10 @@ export async function uploadArtifact(options: {
       headers: UploadServiceHeaders.getHeaders()
     }
   );
+  if (commitResponse.status < 200 || commitResponse.status >= 300) {
+    throw new Error("Failed to commit file upload with status code: " + commitResponse.status)
+  }
+  console.log("File upload committed successfully with status code:", commitResponse.status)
 
   return commitResponse.data;
 }
