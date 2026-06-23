@@ -3,10 +3,43 @@ import fs from 'fs'
 import FormData from 'form-data'
 import path from 'path';
 
-const API_HOSTNAME = 'https://api.appcircle.io'
+let apiHostname = 'https://api.appcircle.io'
 export const appcircleApi = axios.create({
-  baseURL: API_HOSTNAME.endsWith('/') ? API_HOSTNAME : `${API_HOSTNAME}/`
+  baseURL: `${apiHostname}/`
 })
+
+export function setApiEndpoint(endpoint: string): void {
+  if (!endpoint) return
+  apiHostname = endpoint.replace(/\/+$/, '')
+  appcircleApi.defaults.baseURL = `${apiHostname}/`
+}
+
+async function uploadWithRetry(
+  doUpload: () => Promise<any>,
+  maxRetries = 5
+): Promise<any> {
+  let attempt = 0
+  let delay = 1000
+  while (true) {
+    try {
+      return await doUpload()
+    } catch (error: any) {
+      const status = error?.response?.status
+      const retryable =
+        status === 503 ||
+        error?.code === 'ECONNRESET' ||
+        (typeof error?.message === 'string' &&
+          error.message.includes('socket hang up'))
+      if (!retryable || attempt >= maxRetries) {
+        throw error
+      }
+      attempt++
+      const jitter = Math.floor(Math.random() * 300)
+      await new Promise(resolve => setTimeout(resolve, delay + jitter))
+      delay *= 2
+    }
+  }
+}
 
 export class UploadServiceHeaders {
   static token = ''
@@ -37,6 +70,10 @@ export async function uploadArtifact(options: {
   const uploadInfoResponse = await appcircleApi.get<{
     fileId: string;
     uploadUrl: string;
+    configuration?: {
+      httpMethod: string;
+      signParameters: Record<string, string>;
+    };
   }>(
     `distribution/v1/profiles/${options.distProfileId}/app-versions`,
     {
@@ -53,18 +90,31 @@ export async function uploadArtifact(options: {
   }
   console.log("File upload information retrieved successfully with status code:", uploadInfoResponse.status)
 
-  const { fileId, uploadUrl } = uploadInfoResponse.data;
-
-  const fileContent = fs.readFileSync(filePath);
+  const { fileId, uploadUrl, configuration } = uploadInfoResponse.data;
+  const httpMethod = configuration?.httpMethod?.toUpperCase() ?? 'PUT'
+  const signParameters = configuration?.signParameters ?? {}
 
   console.log("Uploading file to Appcircle...")
-  const uploadResponse = await axios.put(uploadUrl, fileContent, {
-    headers: {
-      'Content-Type': 'application/octet-stream'
-    },
-    maxContentLength: Infinity,
-    maxBodyLength: Infinity
-  });
+  const uploadResponse = await uploadWithRetry(() => {
+    if (httpMethod === 'POST') {
+      // Presigned POST (e.g. MinIO on self-hosted): sign params first, file LAST.
+      const form = new FormData()
+      for (const [key, value] of Object.entries(signParameters)) {
+        form.append(key, value)
+      }
+      form.append('file', fs.createReadStream(filePath), fileName)
+      return axios.post(uploadUrl, form, {
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+        headers: { ...form.getHeaders() }
+      })
+    }
+    return axios.put(uploadUrl, fs.readFileSync(filePath), {
+      headers: { 'Content-Type': 'application/octet-stream' },
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
+    })
+  })
   if (uploadResponse.status < 200 || uploadResponse.status >= 300) {
     throw new Error("Failed to upload file with status code: " + uploadResponse.status)
   }
@@ -158,7 +208,7 @@ export async function checkTaskStatus(
   taskId: string,
   currentAttempt = 0
 ) {
-  const response = await fetch(`${API_HOSTNAME}/task/v1/tasks/${taskId}`, {
+  const response = await fetch(`${apiHostname}/task/v1/tasks/${taskId}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

@@ -13,6 +13,18 @@ inputs:
     description:
       'Provide Appcircle Personal API Token to authenticate Appcircle services.'
     required: true
+  authEndpoint:
+    description:
+      'Optional: Authentication endpoint URL for self-hosted Appcircle
+      installations. Defaults to the Appcircle cloud.'
+    required: false
+    default: 'https://auth.appcircle.io'
+  apiEndpoint:
+    description:
+      'Optional: API endpoint URL for self-hosted Appcircle installations.
+      Defaults to the Appcircle cloud.'
+    required: false
+    default: 'https://api.appcircle.io'
   profileName:
     description:
       'Enter the profile name of the Appcircle distribution profile. This name

@@ -28430,11 +28430,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getToken = void 0;
 const axios_1 = __importDefault(__nccwpck_require__(8757));
-const AUTH_HOSTNAME = 'https://auth.appcircle.io';
-async function getToken(pat) {
+async function getToken(pat, authEndpoint = 'https://auth.appcircle.io') {
     const params = new URLSearchParams();
     params.append('pat', pat);
-    const response = await axios_1.default.post(`${AUTH_HOSTNAME}/auth/v1/token`, params.toString(), {
+    const authHostname = authEndpoint.replace(/\/+$/, '');
+    const response = await axios_1.default.post(`${authHostname}/auth/v1/token`, params.toString(), {
         headers: {
             accept: 'application/json',
             'content-type': 'application/x-www-form-urlencoded'
@@ -28456,14 +28456,49 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.checkTaskStatus = exports.getProfileId = exports.getDistributionProfiles = exports.createDistributionProfile = exports.uploadArtifact = exports.UploadServiceHeaders = exports.appcircleApi = void 0;
+exports.checkTaskStatus = exports.getProfileId = exports.getDistributionProfiles = exports.createDistributionProfile = exports.uploadArtifact = exports.UploadServiceHeaders = exports.setApiEndpoint = exports.appcircleApi = void 0;
 const axios_1 = __importDefault(__nccwpck_require__(8757));
 const fs_1 = __importDefault(__nccwpck_require__(7147));
+const form_data_1 = __importDefault(__nccwpck_require__(4334));
 const path_1 = __importDefault(__nccwpck_require__(1017));
-const API_HOSTNAME = 'https://api.appcircle.io';
+let apiHostname = 'https://api.appcircle.io';
 exports.appcircleApi = axios_1.default.create({
-    baseURL: API_HOSTNAME.endsWith('/') ? API_HOSTNAME : `${API_HOSTNAME}/`
+    baseURL: `${apiHostname}/`
 });
+// Point the action at a self-hosted Appcircle installation (defaults to the cloud).
+function setApiEndpoint(endpoint) {
+    if (!endpoint)
+        return;
+    apiHostname = endpoint.replace(/\/+$/, '');
+    exports.appcircleApi.defaults.baseURL = `${apiHostname}/`;
+}
+exports.setApiEndpoint = setApiEndpoint;
+// Retries a binary upload on transient failures (503 / connection reset / socket
+// hang up) with exponential backoff + jitter. The upload call is passed as a thunk
+// so the request body (e.g. a fresh read stream) is rebuilt on every attempt.
+async function uploadWithRetry(doUpload, maxRetries = 5) {
+    let attempt = 0;
+    let delay = 1000;
+    while (true) {
+        try {
+            return await doUpload();
+        }
+        catch (error) {
+            const status = error?.response?.status;
+            const retryable = status === 503 ||
+                error?.code === 'ECONNRESET' ||
+                (typeof error?.message === 'string' &&
+                    error.message.includes('socket hang up'));
+            if (!retryable || attempt >= maxRetries) {
+                throw error;
+            }
+            attempt++;
+            const jitter = Math.floor(Math.random() * 300);
+            await new Promise(resolve => setTimeout(resolve, delay + jitter));
+            delay *= 2;
+        }
+    }
+}
 class UploadServiceHeaders {
     static token = '';
     static getHeaders = () => {
@@ -28494,15 +28529,29 @@ async function uploadArtifact(options) {
         throw new Error("Failed to retrieve file upload information with status code: " + uploadInfoResponse.status);
     }
     console.log("File upload information retrieved successfully with status code:", uploadInfoResponse.status);
-    const { fileId, uploadUrl } = uploadInfoResponse.data;
-    const fileContent = fs_1.default.readFileSync(filePath);
+    const { fileId, uploadUrl, configuration } = uploadInfoResponse.data;
+    const httpMethod = configuration?.httpMethod?.toUpperCase() ?? 'PUT';
+    const signParameters = configuration?.signParameters ?? {};
     console.log("Uploading file to Appcircle...");
-    const uploadResponse = await axios_1.default.put(uploadUrl, fileContent, {
-        headers: {
-            'Content-Type': 'application/octet-stream'
-        },
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity
+    const uploadResponse = await uploadWithRetry(() => {
+        if (httpMethod === 'POST') {
+            // Presigned POST (e.g. MinIO on self-hosted): sign params first, file LAST.
+            const form = new form_data_1.default();
+            for (const [key, value] of Object.entries(signParameters)) {
+                form.append(key, value);
+            }
+            form.append('file', fs_1.default.createReadStream(filePath), fileName);
+            return axios_1.default.post(uploadUrl, form, {
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity,
+                headers: { ...form.getHeaders() }
+            });
+        }
+        return axios_1.default.put(uploadUrl, fs_1.default.readFileSync(filePath), {
+            headers: { 'Content-Type': 'application/octet-stream' },
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
+        });
     });
     if (uploadResponse.status < 200 || uploadResponse.status >= 300) {
         throw new Error("Failed to upload file with status code: " + uploadResponse.status);
@@ -28567,7 +28616,7 @@ async function getProfileId(profileName, createProfileIfNotExists) {
 }
 exports.getProfileId = getProfileId;
 async function checkTaskStatus(token, taskId, currentAttempt = 0) {
-    const response = await fetch(`${API_HOSTNAME}/task/v1/tasks/${taskId}`, {
+    const response = await fetch(`${apiHostname}/task/v1/tasks/${taskId}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -28627,10 +28676,13 @@ const uploadApi_1 = __nccwpck_require__(6077);
 async function run() {
     try {
         const personalAPIToken = core.getInput('personalAPIToken');
+        const authEndpoint = core.getInput('authEndpoint') || 'https://auth.appcircle.io';
+        const apiEndpoint = core.getInput('apiEndpoint') || 'https://api.appcircle.io';
         const profileName = core.getInput('profileName');
         const createProfileIfNotExists = core.getBooleanInput('createProfileIfNotExists');
         const appPath = core.getInput('appPath');
         const message = core.getInput('message');
+        (0, uploadApi_1.setApiEndpoint)(apiEndpoint);
         const validExtensions = ['.ipa', '.apk', '.aab', '.zip'];
         const fileExtension = appPath.slice(appPath.lastIndexOf('.')).toLowerCase();
         if (!validExtensions.includes(fileExtension)) {
@@ -28639,7 +28691,7 @@ async function run() {
                 `- iOS: .ipa or .zip(.xcarchive)`);
             return;
         }
-        const loginResponse = await (0, authApi_1.getToken)(personalAPIToken);
+        const loginResponse = await (0, authApi_1.getToken)(personalAPIToken, authEndpoint);
         uploadApi_1.UploadServiceHeaders.token = loginResponse.access_token;
         console.log('Logged into Appcircle successfully.');
         const profileIdFromName = await (0, uploadApi_1.getProfileId)(profileName, createProfileIfNotExists);
