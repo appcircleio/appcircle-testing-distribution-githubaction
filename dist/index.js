@@ -28459,7 +28459,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.checkTaskStatus = exports.getProfileId = exports.getDistributionProfiles = exports.createDistributionProfile = exports.uploadArtifact = exports.UploadServiceHeaders = exports.appcircleApi = void 0;
 const axios_1 = __importDefault(__nccwpck_require__(8757));
 const fs_1 = __importDefault(__nccwpck_require__(7147));
-const form_data_1 = __importDefault(__nccwpck_require__(4334));
+const path_1 = __importDefault(__nccwpck_require__(1017));
 const API_HOSTNAME = 'https://api.appcircle.io';
 exports.appcircleApi = axios_1.default.create({
     baseURL: API_HOSTNAME.endsWith('/') ? API_HOSTNAME : `${API_HOSTNAME}/`
@@ -28477,19 +28477,53 @@ class UploadServiceHeaders {
 }
 exports.UploadServiceHeaders = UploadServiceHeaders;
 async function uploadArtifact(options) {
-    const data = new form_data_1.default();
-    data.append('Message', options.message);
-    data.append('File', fs_1.default.createReadStream(options.app));
-    const uploadResponse = await exports.appcircleApi.post(`distribution/v2/profiles/${options.distProfileId}/app-versions`, data, {
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
-        headers: {
-            ...UploadServiceHeaders.getHeaders(),
-            ...data.getHeaders(),
-            'Content-Type': 'multipart/form-data;boundary=' + data.getBoundary()
-        }
+    const filePath = options.app;
+    const fileStat = fs_1.default.statSync(filePath);
+    const fileName = path_1.default.basename(filePath);
+    const fileSize = fileStat.size;
+    console.log("Getting file upload information...");
+    const uploadInfoResponse = await exports.appcircleApi.get(`distribution/v1/profiles/${options.distProfileId}/app-versions`, {
+        params: {
+            action: 'uploadInformation',
+            fileName: fileName,
+            fileSize: fileSize
+        },
+        headers: UploadServiceHeaders.getHeaders()
     });
-    return uploadResponse.data;
+    if (uploadInfoResponse.status < 200 || uploadInfoResponse.status >= 300) {
+        throw new Error("Failed to retrieve file upload information with status code: " + uploadInfoResponse.status);
+    }
+    console.log("File upload information retrieved successfully with status code:", uploadInfoResponse.status);
+    const { fileId, uploadUrl } = uploadInfoResponse.data;
+    const fileContent = fs_1.default.readFileSync(filePath);
+    console.log("Uploading file to Appcircle...");
+    const uploadResponse = await axios_1.default.put(uploadUrl, fileContent, {
+        headers: {
+            'Content-Type': 'application/octet-stream'
+        },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
+    });
+    if (uploadResponse.status < 200 || uploadResponse.status >= 300) {
+        throw new Error("Failed to upload file with status code: " + uploadResponse.status);
+    }
+    console.log("File upload finished successfully with status code:", uploadResponse.status);
+    console.log("Committing file upload...");
+    const commitResponse = await exports.appcircleApi.post(`distribution/v1/profiles/${options.distProfileId}/app-versions`, {
+        fileId: fileId,
+        fileName: fileName,
+        message: options.message
+    }, {
+        params: {
+            action: 'commitFileUpload'
+        },
+        headers: UploadServiceHeaders.getHeaders()
+    });
+    if (commitResponse.status < 200 || commitResponse.status >= 300) {
+        throw new Error("Failed to commit file upload with status code: " + commitResponse.status);
+    }
+    console.log("File upload committed successfully with status code:", commitResponse.status);
+    return commitResponse.data;
 }
 exports.uploadArtifact = uploadArtifact;
 async function createDistributionProfile(name) {
@@ -28607,7 +28641,7 @@ async function run() {
         }
         const loginResponse = await (0, authApi_1.getToken)(personalAPIToken);
         uploadApi_1.UploadServiceHeaders.token = loginResponse.access_token;
-        console.log('Logged in to Appcircle successfully');
+        console.log('Logged into Appcircle successfully.');
         const profileIdFromName = await (0, uploadApi_1.getProfileId)(profileName, createProfileIfNotExists);
         const uploadResponse = await (0, uploadApi_1.uploadArtifact)({
             message,
