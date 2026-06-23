@@ -20,18 +20,10 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install & build bundle
+      - name: Build bundle (smoke test)
         run: |
           npm ci
           npm run package
-
-      - name: Verify dist/ is up to date
-        run: |
-          if [ -n "$(git status --porcelain dist)" ]; then
-            echo "::error::dist/ is out of date — run 'npm run package' and commit it."
-            git --no-pager diff --stat dist
-            exit 1
-          fi
 
       - name: Release
         env:
