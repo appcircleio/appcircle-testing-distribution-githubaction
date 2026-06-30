@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+set -euo pipefail
+
+# Rejects pushing non-standard tags. Release tags must be SemVer with a 'v' prefix:
+#   vX.Y.Z            (production, e.g. v0.5.0)
+#   vX.Y.Z-<pre>      (pre-release, e.g. v0.5.0-beta.1 — normally created by CI)
+# Examples REJECTED: X.Y.Z, X.Y, vX.Y, 1.0, v1.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+
+pattern='^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'
+zero='0000000000000000000000000000000000000000'
+status=0
+
+while read -r _local_ref _local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/tags/*)
+      # Allow tag deletions (remote_sha stays, local sha is zero on delete is the other way;
+      # we only validate creations/updates).
+      [ "$remote_sha" = "$zero" ] && continue || true
+      tag="${remote_ref#refs/tags/}"
+      if ! printf '%s' "$tag" | grep -qE "$pattern"; then
+        echo "✖ Refused to push tag '$tag'." >&2
+        echo "  Release tags must be SemVer with a 'v' prefix, e.g. v0.5.0 (or v0.5.0-beta.1)." >&2
+        echo "  Rejected forms: X.Y.Z, X.Y, vX.Y, bare numbers." >&2
+        status=1
+      fi
+      ;;
+  esac
+done
+
+exit $status
