@@ -1,10 +1,8 @@
 ## Appcircle Testing Distribution
 
-Appcircle simplifies the distribution of builds to test teams with an extensive
-platform for managing and tracking applications, versions, testers, and teams.
-Appcircle integrates with enterprise authentication mechanisms such as LDAP and
-SSO, ensuring secure distribution of testing packages. Learn more about
-Appcircle testing distribution. Learn more about
+Appcircle Testing Distribution enables the binary distribution of Android (.apk,
+.aab) and iOS (.ipa) files, allowing teams to create test groups and share builds
+using enterprise authentication methods such as SSO and LDAP. Learn more about
 [Appcircle testing distribution](https://appcircle.io/testing-distribution?utm_source=github&utm_medium=plugin&utm_campaign=testing_distribution)
 
 Appcircle's test distribution extension enables developers to create test groups
@@ -66,6 +64,10 @@ enterprise-grade authentication methods.
    - **Customer Satisfaction:** By delivering higher quality software, customer
      satisfaction and trust in the product increase.
 
+**Re-Sign and Auto-Resign**
+
+- **Update Without Rebuilding:** Re-sign iOS and Android binaries with updated signing identities, manually or automatically, and keep distributing without a new build.
+
 Overall, using testing distribution in mobile DevOps significantly enhances the
 efficiency, security, and effectiveness of the software development process,
 leading to better products and faster delivery times.
@@ -98,7 +100,7 @@ To generate a Personal API Token, follow these steps:
 
 ![Token Generation](images/PAT.png)
 
-## Getting Started with the Action: Usage Guide
+## How to use Appcircle Testing Distribution Action
 
 To share your builds with testers, you can create distribution profiles and
 assign testing groups to these profiles. Add a step to your pipeline for 'Test
@@ -109,7 +111,7 @@ Local Action' with the appropriate information.
   id: testing-distribution-appcircle
   uses: appcircleio/appcircle-testing-distribution-githubaction
   with:
-    personalAPIToken: ${{ secrets.AC_PROFLE_API_TOKEN }}
+    personalAPIToken: ${{ secrets.AC_PROFILE_API_TOKEN }}
     profileName: ${{ secrets.AC_PROFILE_NAME }}
     createProfileIfNotExists: ${{ secrets.CREATE_PROFILE_IF_NOT_EXISTS }}
     appPath: ${{ secrets.APP_PATH }}
@@ -140,7 +142,7 @@ change.
 - name: Publish App to Appcircle
   uses: appcircleio/appcircle-testing-distribution-githubaction
   with:
-    personalAPIToken: ${{ secrets.AC_PROFLE_API_TOKEN }}
+    personalAPIToken: ${{ secrets.AC_PROFILE_API_TOKEN }}
     profileName: ${{ secrets.AC_PROFILE_NAME }}
     createProfileIfNotExists: ${{ secrets.CREATE_PROFILE_IF_NOT_EXISTS }}
     appPath: ${{ secrets.APP_PATH }}
@@ -157,7 +159,7 @@ change.
 > **Self-signed or private CA certificates:** If your self-hosted Appcircle server
 > uses a self-signed certificate (or one issued by a private/internal CA), requests
 > will fail certificate validation. The action does not disable TLS verification.
-> Trust the server's CA on the runner — set the `NODE_EXTRA_CA_CERTS` environment
+> Trust the server's CA on the runner: set the `NODE_EXTRA_CA_CERTS` environment
 > variable to a PEM file containing the CA certificate, or add the CA to the system
 > certificate store.
 
