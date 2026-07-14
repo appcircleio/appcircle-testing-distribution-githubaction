@@ -190,3 +190,6 @@ need support or more information, please
 - To create or learn more about Appcircle testing and distribution profiles,
   please refer to
   [Creating or Selecting a Distribution Profile](https://docs.appcircle.io/distribute/create-or-select-a-distribution-profile?utm_source=github&utm_medium=plugin&utm_campaign=testing_distribution)
+
+- For the full action setup guide, see the
+  [Appcircle Testing Distribution documentation](https://docs.appcircle.io/marketplace/github-marketplace/testing-distribution?utm_source=github&utm_medium=plugin&utm_campaign=testing_distribution)
