@@ -5,24 +5,24 @@ Appcircle Testing Distribution enables the binary distribution of Android (.apk,
 using enterprise authentication methods such as SSO and LDAP. Learn more about
 [Appcircle testing distribution](https://appcircle.io/testing-distribution?utm_source=github&utm_medium=plugin&utm_campaign=testing_distribution)
 
-Appcircle's test distribution extension enables developers to create test groups
+Appcircle's Testing Distribution action enables developers to create test groups
 and share builds with them, utilizing enterprise-grade authentication methods.
-With the GitHub actions marketplace, this module will be accessible directly
-from the actions.
+With the GitHub Marketplace, this module is accessible directly from your
+workflows.
 
 ## Exploring Testing Distribution
 
 Testing distribution is the process of distributing test builds to designated
 test groups or individuals. This process allows developers to gather quick
 feedback, identify bugs, and ensure the quality of software applications before
-releasing them to customers. Appcircle's test distribution module enables
+releasing them to customers. Appcircle's Testing Distribution module enables
 developers to create test groups and share builds with them, utilizing
 enterprise-grade authentication methods.
 
 ## Benefits of Using Testing Distribution
 
 1. **Simplified Binary Distribution**.
-   - **Skip Traditional Stores:** Share .xcarchive .IPA, APK, AAB, Zip, files
+   - **Skip Traditional Stores:** Share .apk, .aab (Android) and .ipa (iOS) files
      directly, avoiding the need to use App Store TestFlight or Google Play
      Internal Testing.
 2. **Streamlined Workflow:**
@@ -64,9 +64,8 @@ enterprise-grade authentication methods.
    - **Customer Satisfaction:** By delivering higher quality software, customer
      satisfaction and trust in the product increase.
 
-**Re-Sign and Auto-Resign**
-
-- **Update Without Rebuilding:** Re-sign iOS and Android binaries with updated signing identities, manually or automatically, and keep distributing without a new build.
+9. **Re-Sign and Auto-Resign:**
+   - **Update Without Rebuilding:** Re-sign iOS and Android binaries with updated signing identities, manually or automatically, and keep distributing without a new build.
 
 Overall, using testing distribution in mobile DevOps significantly enhances the
 efficiency, security, and effectiveness of the software development process,
@@ -94,17 +93,17 @@ and assign testing groups to the distribution profiles.
 
 To generate a Personal API Token, follow these steps:
 
-1. Go to the My Organization screen (the second option at the bottom left).
-2. You'll find the Personal API Token section in the top right corner.
-3. Press the "Generate Token" button to generate your first token.
+1. Open the **My Organization** screen from your profile avatar at the bottom left.
+2. Go to the **Security** section and find the **Personal Access Key** card.
+3. Press **Generate Key** to generate your token.
 
 ![Token Generation](images/PAT.png)
 
 ## How to use Appcircle Testing Distribution Action
 
 To share your builds with testers, you can create distribution profiles and
-assign testing groups to these profiles. Add a step to your pipeline for 'Test
-Local Action' with the appropriate information.
+assign testing groups to these profiles. Add the Appcircle Testing Distribution
+step to your workflow with the appropriate inputs.
 
 ```yaml
 - name: Publish App to Appcircle
@@ -166,7 +165,7 @@ change.
 ### Leveraging Environment Variables
 
 Utilize environment variables seamlessly by substituting the parameters with
-`${{ envs.VARIABLE_NAME }}` in your task inputs. The extension automatically
+`${{ envs.VARIABLE_NAME }}` in your workflow inputs. The action automatically
 retrieves values from the specified environment variables within your pipeline.
 
 **Ensure that this action is added after build steps have been completed.**
