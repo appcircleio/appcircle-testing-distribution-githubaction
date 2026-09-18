@@ -56,6 +56,22 @@ export class UploadServiceHeaders {
   }
 }
 
+export async function getOrganizationId(name: string): Promise<string> {
+  const response = await appcircleApi.get('identity/v1/organizations', {
+    params: { page: 1, perPage: 1000 },
+    headers: UploadServiceHeaders.getHeaders()
+  })
+  const organizations: { id: string; name: string }[] =
+    response.data?.data ?? []
+  const organization = organizations.find(org => org.name === name)
+  if (!organization?.id) {
+    throw new Error(
+      `Sub-organization '${name}' could not be found or is not accessible with this token.`
+    )
+  }
+  return organization.id
+}
+
 export async function uploadArtifact(options: {
   message: string
   app: string

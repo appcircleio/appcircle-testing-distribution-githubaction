@@ -29946,11 +29946,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getToken = void 0;
 const axios_1 = __importDefault(__nccwpck_require__(8757));
-async function getToken(pat, authEndpoint = 'https://auth.appcircle.io') {
+async function getToken(pat, authEndpoint = 'https://auth.appcircle.io', subOrganizationId) {
     const params = new URLSearchParams();
     params.append('pat', pat);
+    const tokenPath = subOrganizationId ? '/auth/v2/token' : '/auth/v1/token';
+    if (subOrganizationId) {
+        params.append('subOrganizationId', subOrganizationId);
+    }
     const authHostname = authEndpoint.replace(/\/+$/, '');
-    const response = await axios_1.default.post(`${authHostname}/auth/v1/token`, params.toString(), {
+    const response = await axios_1.default.post(`${authHostname}${tokenPath}`, params.toString(), {
         headers: {
             accept: 'application/json',
             'content-type': 'application/x-www-form-urlencoded'
@@ -29972,7 +29976,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.checkTaskStatus = exports.getProfileId = exports.getDistributionProfiles = exports.createDistributionProfile = exports.uploadArtifact = exports.UploadServiceHeaders = exports.setApiEndpoint = exports.appcircleApi = void 0;
+exports.checkTaskStatus = exports.getProfileId = exports.getDistributionProfiles = exports.createDistributionProfile = exports.uploadArtifact = exports.getOrganizationId = exports.UploadServiceHeaders = exports.setApiEndpoint = exports.appcircleApi = void 0;
 const axios_1 = __importDefault(__nccwpck_require__(8757));
 const fs_1 = __importDefault(__nccwpck_require__(7147));
 const form_data_1 = __importDefault(__nccwpck_require__(4334));
@@ -30023,6 +30027,19 @@ class UploadServiceHeaders {
     };
 }
 exports.UploadServiceHeaders = UploadServiceHeaders;
+async function getOrganizationId(name) {
+    const response = await exports.appcircleApi.get('identity/v1/organizations', {
+        params: { page: 1, perPage: 1000 },
+        headers: UploadServiceHeaders.getHeaders()
+    });
+    const organizations = response.data?.data ?? [];
+    const organization = organizations.find(org => org.name === name);
+    if (!organization?.id) {
+        throw new Error(`Sub-organization '${name}' could not be found or is not accessible with this token.`);
+    }
+    return organization.id;
+}
+exports.getOrganizationId = getOrganizationId;
 async function uploadArtifact(options) {
     const filePath = options.app;
     const fileStat = fs_1.default.statSync(filePath);
@@ -30194,6 +30211,7 @@ async function run() {
         const createProfileIfNotExists = core.getBooleanInput('createProfileIfNotExists');
         const appPath = core.getInput('appPath');
         const message = core.getInput('message');
+        const subOrganizationName = core.getInput('subOrganizationName');
         (0, uploadApi_1.setApiEndpoint)(apiEndpoint);
         const validExtensions = ['.ipa', '.apk', '.aab', '.zip'];
         const fileExtension = appPath.slice(appPath.lastIndexOf('.')).toLowerCase();
@@ -30204,8 +30222,27 @@ async function run() {
             return;
         }
         const loginResponse = await (0, authApi_1.getToken)(personalAPIToken, authEndpoint);
-        uploadApi_1.UploadServiceHeaders.token = loginResponse.access_token;
+        let accessToken = loginResponse.access_token;
+        uploadApi_1.UploadServiceHeaders.token = accessToken;
         console.log('Logged into Appcircle successfully.');
+        if (subOrganizationName) {
+            const subOrganizationId = await (0, uploadApi_1.getOrganizationId)(subOrganizationName);
+            let subLoginResponse;
+            try {
+                subLoginResponse = await (0, authApi_1.getToken)(personalAPIToken, authEndpoint, subOrganizationId);
+            }
+            catch (error) {
+                const status = error?.response?.status;
+                throw new Error(`Could not authenticate against sub-organization '${subOrganizationName}'` +
+                    `${status ? ` (HTTP ${status})` : ''}: ${error?.message}`);
+            }
+            if (!subLoginResponse?.access_token) {
+                throw new Error(`Could not obtain an access token for sub-organization '${subOrganizationName}'.`);
+            }
+            accessToken = subLoginResponse.access_token;
+            uploadApi_1.UploadServiceHeaders.token = accessToken;
+            console.log(`Switched to sub-organization: ${subOrganizationName}`);
+        }
         const profileIdFromName = await (0, uploadApi_1.getProfileId)(profileName, createProfileIfNotExists);
         const uploadResponse = await (0, uploadApi_1.uploadArtifact)({
             message,
@@ -30216,7 +30253,7 @@ async function run() {
             core.setFailed('Task ID is not found in the upload response');
         }
         else {
-            await (0, uploadApi_1.checkTaskStatus)(loginResponse.access_token, uploadResponse.taskId);
+            await (0, uploadApi_1.checkTaskStatus)(accessToken, uploadResponse.taskId);
             console.log(`${appPath} uploaded to Appcircle successfully`);
         }
     }
