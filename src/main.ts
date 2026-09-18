@@ -3,6 +3,7 @@ import * as core from '@actions/core'
 import { getToken } from './api/authApi'
 import {
   checkTaskStatus,
+  getOrganizationId,
   getProfileId,
   setApiEndpoint,
   uploadArtifact,
@@ -26,6 +27,7 @@ export async function run(): Promise<void> {
     )
     const appPath = core.getInput('appPath')
     const message = core.getInput('message')
+    const subOrganizationName = core.getInput('subOrganizationName')
 
     setApiEndpoint(apiEndpoint)
 
@@ -41,8 +43,35 @@ export async function run(): Promise<void> {
     }
 
     const loginResponse = await getToken(personalAPIToken, authEndpoint)
-    UploadServiceHeaders.token = loginResponse.access_token
+    let accessToken = loginResponse.access_token
+    UploadServiceHeaders.token = accessToken
     console.log('Logged into Appcircle successfully.')
+
+    if (subOrganizationName) {
+      const subOrganizationId = await getOrganizationId(subOrganizationName)
+      let subLoginResponse
+      try {
+        subLoginResponse = await getToken(
+          personalAPIToken,
+          authEndpoint,
+          subOrganizationId
+        )
+      } catch (error: any) {
+        const status = error?.response?.status
+        throw new Error(
+          `Could not authenticate against sub-organization '${subOrganizationName}'` +
+            `${status ? ` (HTTP ${status})` : ''}: ${error?.message}`
+        )
+      }
+      if (!subLoginResponse?.access_token) {
+        throw new Error(
+          `Could not obtain an access token for sub-organization '${subOrganizationName}'.`
+        )
+      }
+      accessToken = subLoginResponse.access_token
+      UploadServiceHeaders.token = accessToken
+      console.log(`Switched to sub-organization: ${subOrganizationName}`)
+    }
 
     const profileIdFromName = await getProfileId(
       profileName,
@@ -57,7 +86,7 @@ export async function run(): Promise<void> {
     if (!uploadResponse.taskId) {
       core.setFailed('Task ID is not found in the upload response')
     } else {
-      await checkTaskStatus(loginResponse.access_token, uploadResponse.taskId)
+      await checkTaskStatus(accessToken, uploadResponse.taskId)
       console.log(`${appPath} uploaded to Appcircle successfully`)
     }
   } catch (error) {

@@ -129,6 +129,34 @@ step to your workflow with the appropriate inputs.
 - `message`: Your message to testers, ensuring they receive important updates
   and information regarding the application.
 
+### Sub-Organizations
+
+If your Personal API Token belongs to the root organization but the target
+distribution profile lives in a sub-organization, set the optional
+`subOrganizationName` input. The action re-authenticates the same token against
+that sub-organization and runs every subsequent call there, so the profile is
+found (and created, when `createProfileIfNotExists` is `true`) inside the
+sub-organization instead of the root organization.
+
+```yaml
+- name: Publish App to Appcircle
+  uses: appcircleio/appcircle-testing-distribution-githubaction
+  with:
+    personalAPIToken: ${{ secrets.AC_PROFILE_API_TOKEN }}
+    subOrganizationName: YOUR_SUB_ORGANIZATION_NAME
+    profileName: ${{ secrets.AC_PROFILE_NAME }}
+    createProfileIfNotExists: ${{ secrets.CREATE_PROFILE_IF_NOT_EXISTS }}
+    appPath: ${{ secrets.APP_PATH }}
+    message: ${{ secrets.MESSAGE }}
+```
+
+- `subOrganizationName`: Name of the sub-organization to distribute into.
+  Optional; defaults to the root organization. The name must match exactly and
+  the token must have access to that sub-organization, otherwise the action
+  fails instead of falling back to the root organization.
+  It works the same way against a self-hosted installation; combine it with the
+  `authEndpoint` and `apiEndpoint` inputs described below.
+
 ### Self-Hosted Appcircle
 
 If you run a self-hosted Appcircle installation, point the action to your own
