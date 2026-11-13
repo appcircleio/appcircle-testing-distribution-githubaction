@@ -2,6 +2,12 @@ import axios, { AxiosRequestConfig } from 'axios'
 import fs from 'fs'
 import FormData from 'form-data'
 import path from 'path';
+import {
+  TASK_REQUEST_TIMEOUT_MS,
+  TaskPollOptions,
+  TaskStatusReply,
+  waitForTaskCompletion
+} from './taskStatus'
 
 let apiHostname = 'https://api.appcircle.io'
 export const appcircleApi = axios.create({
@@ -219,22 +225,48 @@ export async function getProfileId(
   return profileId
 }
 
+async function readTaskStatus(
+  token: string,
+  taskId: string,
+  timeoutMs: number
+): Promise<TaskStatusReply> {
+  try {
+    const url = `${apiHostname}/task/v1/tasks/${encodeURIComponent(taskId)}`
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      signal: AbortSignal.timeout(timeoutMs)
+    })
+    const text = await response.text()
+    let body: TaskStatusReply['body']
+    try {
+      body = text ? JSON.parse(text) : undefined
+    } catch {
+      body = undefined
+    }
+    return { httpStatus: response.status, body }
+  } catch {
+    return { httpStatus: 0 }
+  }
+}
+
 export async function checkTaskStatus(
   token: string,
   taskId: string,
-  currentAttempt = 0
-) {
-  const response = await fetch(`${apiHostname}/task/v1/tasks/${taskId}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    }
-  })
-  const res = await response.json()
-  if ((res?.stateValue == 0 || res?.stateValue == 1) && currentAttempt < 100) {
-    return checkTaskStatus(token, taskId, currentAttempt + 1)
-  } else if (res?.stateValue === 2) {
-    throw new Error(`Build Upload Task Failed: ${res.stateName}`)
-  }
+  options?: TaskPollOptions
+): Promise<void> {
+  await waitForTaskCompletion(
+    taskId,
+    id =>
+      readTaskStatus(
+        token,
+        id,
+        options?.requestTimeoutMs ?? TASK_REQUEST_TIMEOUT_MS
+      ),
+    (_id, stateName) => `Build Upload Task Failed: ${stateName}`,
+    options
+  )
 }

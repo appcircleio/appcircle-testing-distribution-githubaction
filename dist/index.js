@@ -29967,6 +29967,70 @@ exports.getToken = getToken;
 
 /***/ }),
 
+/***/ 6074:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.waitForTaskCompletion = exports.TASK_REQUEST_TIMEOUT_MS = exports.TASK_NOT_FOUND_GRACE_MS = exports.TASK_TIMEOUT_MS = exports.TASK_POLL_INTERVAL_MS = void 0;
+exports.TASK_POLL_INTERVAL_MS = 2000;
+exports.TASK_TIMEOUT_MS = 10 * 60 * 1000;
+exports.TASK_NOT_FOUND_GRACE_MS = 60 * 1000;
+exports.TASK_REQUEST_TIMEOUT_MS = 30 * 1000;
+const TASK_COMPLETED = 3;
+const TASK_CANCELED = 2;
+function isTransient(httpStatus) {
+    return httpStatus === 0 || httpStatus === 429 || httpStatus >= 500;
+}
+async function waitForTaskCompletion(taskId, readStatus, canceledMessage, options = {}) {
+    if (!taskId) {
+        throw new Error('Task ID is not found in the upload response');
+    }
+    const intervalMs = options.intervalMs ?? exports.TASK_POLL_INTERVAL_MS;
+    const timeoutMs = options.timeoutMs ?? exports.TASK_TIMEOUT_MS;
+    const graceMs = options.notFoundGraceMs ?? exports.TASK_NOT_FOUND_GRACE_MS;
+    const now = options.now ?? (() => Date.now());
+    const sleep = options.sleep ??
+        ((ms) => new Promise(resolve => setTimeout(resolve, ms)));
+    const startedAt = now();
+    let lastState = 'not found';
+    for (;;) {
+        const reply = await readStatus(taskId);
+        const elapsed = now() - startedAt;
+        const state = reply.body?.stateValue;
+        if (reply.httpStatus === 200 && typeof state === 'number') {
+            const stateName = reply.body?.stateName ?? String(state);
+            if (state === TASK_COMPLETED)
+                return;
+            if (state === TASK_CANCELED) {
+                throw new Error(canceledMessage(taskId, stateName));
+            }
+            lastState = stateName;
+        }
+        else if (reply.httpStatus === 200 || reply.httpStatus === 204) {
+            if (elapsed >= graceMs) {
+                throw new Error(`Upload task ${taskId} was not found. Appcircle did not register the task within ${Math.round(graceMs / 1000)} seconds.`);
+            }
+        }
+        else if (isTransient(reply.httpStatus)) {
+            lastState =
+                reply.httpStatus === 0 ? 'no response' : `HTTP ${reply.httpStatus}`;
+        }
+        else {
+            throw new Error(`Could not read the status of upload task ${taskId}: HTTP ${reply.httpStatus}.`);
+        }
+        if (elapsed + intervalMs > timeoutMs) {
+            throw new Error(`Upload task ${taskId} did not complete within ${Math.round(timeoutMs / 60000)} minutes. Last state: ${lastState}.`);
+        }
+        await sleep(intervalMs);
+    }
+}
+exports.waitForTaskCompletion = waitForTaskCompletion;
+
+
+/***/ }),
+
 /***/ 6077:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -29981,6 +30045,7 @@ const axios_1 = __importDefault(__nccwpck_require__(8757));
 const fs_1 = __importDefault(__nccwpck_require__(7147));
 const form_data_1 = __importDefault(__nccwpck_require__(4334));
 const path_1 = __importDefault(__nccwpck_require__(1017));
+const taskStatus_1 = __nccwpck_require__(6074);
 let apiHostname = 'https://api.appcircle.io';
 exports.appcircleApi = axios_1.default.create({
     baseURL: `${apiHostname}/`
@@ -30144,21 +30209,33 @@ async function getProfileId(profileName, createProfileIfNotExists) {
     return profileId;
 }
 exports.getProfileId = getProfileId;
-async function checkTaskStatus(token, taskId, currentAttempt = 0) {
-    const response = await fetch(`${apiHostname}/task/v1/tasks/${taskId}`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
+async function readTaskStatus(token, taskId, timeoutMs) {
+    try {
+        const url = `${apiHostname}/task/v1/tasks/${encodeURIComponent(taskId)}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            signal: AbortSignal.timeout(timeoutMs)
+        });
+        const text = await response.text();
+        let body;
+        try {
+            body = text ? JSON.parse(text) : undefined;
         }
-    });
-    const res = await response.json();
-    if ((res?.stateValue == 0 || res?.stateValue == 1) && currentAttempt < 100) {
-        return checkTaskStatus(token, taskId, currentAttempt + 1);
+        catch {
+            body = undefined;
+        }
+        return { httpStatus: response.status, body };
     }
-    else if (res?.stateValue === 2) {
-        throw new Error(`Build Upload Task Failed: ${res.stateName}`);
+    catch {
+        return { httpStatus: 0 };
     }
+}
+async function checkTaskStatus(token, taskId, options) {
+    await (0, taskStatus_1.waitForTaskCompletion)(taskId, id => readTaskStatus(token, id, options?.requestTimeoutMs ?? taskStatus_1.TASK_REQUEST_TIMEOUT_MS), (_id, stateName) => `Build Upload Task Failed: ${stateName}`, options);
 }
 exports.checkTaskStatus = checkTaskStatus;
 
