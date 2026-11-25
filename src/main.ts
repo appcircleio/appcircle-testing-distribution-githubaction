@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 
-import { getToken } from './api/authApi'
+import { getToken, validateEndpoints } from './api/authApi'
 import {
   checkTaskStatus,
   getOrganizationId,
@@ -29,6 +29,7 @@ export async function run(): Promise<void> {
     const message = core.getInput('message')
     const subOrganizationName = core.getInput('subOrganizationName')
 
+    validateEndpoints(authEndpoint, apiEndpoint)
     setApiEndpoint(apiEndpoint)
 
     const validExtensions = ['.ipa', '.apk', '.aab', '.zip']
